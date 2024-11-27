@@ -453,14 +453,6 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
                 self.features_MSENN_A: o3.Irreps([(1, ir) for _, ir in out_irreps if ir != (1, 1)])
             }
         )
-        
-        self.irreps_out.update(
-            {
-                _keys.NODE_SPIN: o3.Irreps(
-                    [(self.final_latent.out_features, (0, 1))]
-                ),
-            }
-        )
 
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
         """Evaluate.
