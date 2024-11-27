@@ -66,7 +66,8 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
         latent_resnet_update_ratios: Optional[List[float]] = None,
         latent_resnet_update_ratios_learnable: bool = False,
         latent_out_field: Optional[str] = _keys.EDGE_FEATURES,
-        features_MSENN: Optional[str] = _keys.EDGE_FEATURES_MSENN,
+        features_MSENN_J: Optional[str] = _keys.EDGE_FEATURES_MSENN_J,
+        features_MSENN_A: Optional[str] = _keys.EDGE_FEATURES_MSENN_A,
         # Performance parameters:
         pad_to_alignment: int = 1,
         sparse_mode: Optional[str] = None,
@@ -84,7 +85,8 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
         self.nonscalars_include_parity = nonscalars_include_parity
         self.field = field
         self.latent_out_field = latent_out_field
-        self.features_MSENN = features_MSENN
+        self.features_MSENN_J = features_MSENN_J
+        self.features_MSENN_A = features_MSENN_A
         self.edge_invariant_field = edge_invariant_field
         self.node_invariant_field = node_invariant_field
         self.latent_resnet = latent_resnet
@@ -360,16 +362,25 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
             mlp_output_dimension=None,
         )
         
-        print(env_embed_irreps)
-        print(full_out_irreps)
-        print(out_irreps)
-        self.final_linear = Linear(
+        #print(env_embed_irreps)
+        #print(full_out_irreps)
+        #print(out_irreps)
+        self.final_linear1 = Linear(
                     [(env_embed_multiplicity, ir) for _, ir in out_irreps],
                     [(1, ir) for _, ir in out_irreps],
                     shared_weights=True,
                     internal_weights=True,
                     pad_to_alignment=pad_to_alignment,
                     )
+        
+        self.final_linear2 = Linear(
+                    [(env_embed_multiplicity, ir) for _, ir in out_irreps],
+                    [(1, ir) for _, ir in out_irreps],
+                    shared_weights=True,
+                    internal_weights=True,
+                    pad_to_alignment=pad_to_alignment,
+                    )
+        
         
         # - end build modules -
 
@@ -419,7 +430,8 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
             self.per_layer_cutoffs.min() > 0
         ), "Per-layer cutoffs must be >0. To remove higher layers entirely, lower `num_layers`."
         self._latent_dim = self.final_latent.out_features
-        self._features_MSENN_dim = out_irreps.dim
+        self._features_MSENN_J_dim = out_irreps.dim
+        self._features_MSENN_A_dim = o3.Irreps([(1, ir) for _, ir in out_irreps if ir != (1, 1)]).dim
         self.register_buffer("_zero", torch.as_tensor(0.0))
 
         self.irreps_out.update(
@@ -432,7 +444,21 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
         
         self.irreps_out.update(
             {
-                self.features_MSENN: out_irreps
+                self.features_MSENN_J: out_irreps
+            }
+        )
+        
+        self.irreps_out.update(
+            {
+                self.features_MSENN_A: o3.Irreps([(1, ir) for _, ir in out_irreps if ir != (1, 1)])
+            }
+        )
+        
+        self.irreps_out.update(
+            {
+                _keys.NODE_SPIN: o3.Irreps(
+                    [(self.final_latent.out_features, (0, 1))]
+                ),
             }
         )
 
@@ -474,8 +500,14 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
         )
 
         
-        features_MSENN = torch.zeros(
-            (num_edges, 1, self._features_MSENN_dim),
+        features_MSENN_J = torch.zeros(
+            (num_edges, self._features_MSENN_J_dim),
+            dtype=edge_attr.dtype,
+            device=edge_attr.device,
+        )
+        
+        features_MSENN_A = torch.zeros(
+            (num_edges, self._features_MSENN_A_dim),
             dtype=edge_attr.dtype,
             device=edge_attr.device,
         )
@@ -635,11 +667,7 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
         # - final layer -
         # due to TorchScript limitations, we have to
         # copy and repeat the code here --- no way to
-        # escape the final iteration of the loop early
-        new_features_MSENN = self.final_linear(features)
-        
-        features_MSENN = torch.index_copy(features_MSENN, 0, active_edges, new_features_MSENN)
-        
+        # escape the final iteration of the loop early  
         
         cutoff_coeffs = cutoff_coeffs_all[layer_index]
         prev_mask = cutoff_coeffs[active_edges] > 0
@@ -664,12 +692,18 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
             latents = torch.index_copy(latents, 0, active_edges, new_latents)
 
         
+        new_features_MSENN_J =  cutoff_coeffs[active_edges].unsqueeze(-1) * self.final_linear1(features).squeeze(-2) 
+        new_features_MSENN_A = cutoff_coeffs[active_edges].unsqueeze(-1) * ( ( self.final_linear2(features).squeeze(-2) )[:, [0, 4, 5, 6, 7, 8]] )
+        
+        features_MSENN_J = torch.index_copy(features_MSENN_J, 0, active_edges, new_features_MSENN_J)
+        features_MSENN_A = torch.index_copy(features_MSENN_A, 0, active_edges, new_features_MSENN_A)
         
         # - end final layer -
 
         # final latents
         data[self.latent_out_field] = latents
-        data[self.features_MSENN] = features_MSENN
+        data[self.features_MSENN_J] = features_MSENN_J
+        data[self.features_MSENN_A] = features_MSENN_A
         
 
         return data

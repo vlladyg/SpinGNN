@@ -20,6 +20,8 @@ from allegro.nn import (
     EdgewiseEnergySumSEGNN,
     EdgewiseEnergySumHEGNN,
     EdgewiseEnergySumBQ,
+    EdgewiseEnergySumJ,
+    EdgewiseEnergySumA,
     EdgewiseSpinSum,
     AtomwiseReduceSpinGNN,
     Allegro_Module,
@@ -103,19 +105,23 @@ def SpinGNNPlus(config, initialize: bool, dataset: Optional[AtomicDataset] = Non
         # Sum edgewise energies -> per-atom energies:
         "edge_eng_sum": EdgewiseEnergySum,
         # encoding spin distance
-        #"spin_basis": (
-        #    RadialBasisSpinDistanceEncoding,
-        #    dict(
-        #        basis=(
-        #            NormalizedBasis
-        #            if config.get("normalize_basis", True)
-        #            else BesselBasis
-        #        ),
-        #        out_field=EDGE_SPIN_DISTANCE_EMBEDDING,
-        #    ),
-        #),
+        "spin_basis": (
+            RadialBasisSpinDistanceEncoding,
+            dict(
+                basis=(
+                    NormalizedBasis
+                    if config.get("normalize_basis", True)
+                    else BesselBasis
+                ),
+                out_field=EDGE_SPIN_DISTANCE_EMBEDDING,
+            ),
+        ),
+        # Sum biquadratic edgewise terms -> per-atom energies of biquadratic terms:
+        "edge_eng_sum_BQ": EdgewiseEnergySumBQ,
         # Sum edgewise exchange terms -> per-atom energies of exchange terms:
-        #"edge_eng_sum_BQ": EdgewiseEnergySumBQ,
+        "edge_eng_sum_J": EdgewiseEnergySumJ,
+        # Sum onsite spin terms -> per-atom energies of onsite spin terms:
+        "edge_eng_sum_A": EdgewiseEnergySumA,
         # The SEGNN allegro model:
         #"allegro_TENN": (
         #    Allegro_Module_TENN,
