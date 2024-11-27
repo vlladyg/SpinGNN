@@ -17,13 +17,11 @@ from nequip.nn.embedding import (
 from allegro.nn import (
     NormalizedBasis,
     EdgewiseEnergySum,
-    EdgewiseEnergySumSEGNN,
-    EdgewiseEnergySumHEGNN,
     EdgewiseEnergySumBQ,
     EdgewiseEnergySumJ,
     EdgewiseEnergySumA,
     EdgewiseSpinSum,
-    AtomwiseReduceSpinGNN,
+    AtomwiseReduceSpinGNNPlus,
     Allegro_Module,
     Allegro_Module_MSENN,
     ScalarMLP,
@@ -144,14 +142,17 @@ def SpinGNNPlus(config, initialize: bool, dataset: Optional[AtomicDataset] = Non
         # Sum SEGNN energy sum
         #"edge_eng_sum_SEGNN": EdgewiseEnergySumSEGNN,
         # Sum spins -> per-atom spins
-        #"edge_eng_spin": EdgewiseSpinSum,
+        #"edge_spin": EdgewiseSpinSum,
         
         # Sum system energy:
         "total_energy_sum": (
-            AtomwiseReduce,
+            AtomwiseReduceSpinGNNPlus,
             dict(
                 reduce="sum",
-                field=AtomicDataDict.PER_ATOM_ENERGY_KEY,
+                field_eng=AtomicDataDict.PER_ATOM_ENERGY_KEY,
+                field_BQ=PER_ATOM_ENERGY_BQ,
+                field_J=PER_ATOM_ENERGY_J,
+                field_A=PER_ATOM_ENERGY_A,
                 out_field=AtomicDataDict.TOTAL_ENERGY_KEY,
             ),
         ),

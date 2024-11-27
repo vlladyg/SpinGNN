@@ -205,3 +205,73 @@ class EdgewiseEnergySumA(GraphModuleMixin, torch.nn.Module):
         data[_keys.PER_ATOM_ENERGY_A] = atom_eng_A
 
         return data
+
+
+class AtomwiseReduceSpinGNNPlus(GraphModuleMixin, torch.nn.Module):
+    constant: float
+
+    def __init__(
+        self,
+        field_eng: str,
+        field_BQ: str,
+        field_J: str,
+        field_A: str,
+        out_field: Optional[str] = None,
+        reduce="sum",
+        avg_num_atoms=None,
+        irreps_in={},
+        per_contrib_scales: bool = True,
+    ):
+        super().__init__()
+        assert reduce in ("sum", "mean", "normalized_sum")
+        self.constant = 1.0
+        if reduce == "normalized_sum":
+            assert avg_num_atoms is not None
+            self.constant = float(avg_num_atoms) ** -0.5
+            reduce = "sum"
+        self.reduce = reduce
+        self.field_eng = field_eng
+        self.field_BQ = field_BQ
+        self.field_J = field_J
+        self.field_A = field_A
+        self.out_field = f"{reduce}_{field_eng}" if out_field is None else out_field
+        self._init_irreps(
+            irreps_in=irreps_in,
+            irreps_out={self.out_field: irreps_in[self.field_eng]}
+            if self.field_eng in irreps_in
+            else {},
+        )
+
+        self.per_contrib_scales = per_contrib_scales
+        if self.per_contrib_scales:
+            self.per_contrib_scales_SpinGNNPlus = torch.nn.Parameter(torch.ones(4))
+        else:
+            self.register_buffer("per_contrib_scales_SpinGNNPlus", torch.Tensor())
+    
+
+    def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
+        data = AtomicDataDict.with_batch(data)
+
+        term_eng = scatter(
+            data[self.field_eng], data[AtomicDataDict.BATCH_KEY], dim=0, reduce=self.reduce
+        )
+        term_BQ = scatter(
+            data[self.field_BQ], data[AtomicDataDict.BATCH_KEY], dim=0, reduce=self.reduce
+        )
+        term_J = scatter(
+            data[self.field_J], data[AtomicDataDict.BATCH_KEY], dim=0, reduce=self.reduce
+        )
+
+        term_A = scatter(
+            data[self.field_A], data[AtomicDataDict.BATCH_KEY], dim=0, reduce=self.reduce
+        )
+
+        if self.per_contrib_scales:
+            for i, el in enumerate([term_eng, term_BQ, term_J, term_A]):
+                el *= self.per_contrib_scales_SpinGNNPlus[i]
+        
+        data[self.out_field] = term_eng + term_BQ + term_J + term_A
+        
+        if self.constant != 1.0:
+            data[self.out_field] = data[self.out_field] * self.constant
+        return data
