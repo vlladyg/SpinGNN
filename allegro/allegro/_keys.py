@@ -19,6 +19,7 @@ PER_ATOM_ENERGY_SEGNN: Final[str] = "atomic_energy_SEGNN"
 PER_ATOM_ENERGY_BQ: Final[str] = "atomic_energy_BQ"
 PER_ATOM_ENERGY_J: Final[str] = "atomic_energy_J"
 PER_ATOM_ENERGY_A: Final[str] = "atomic_energy_A"
+PER_ATOM_ENERGY_TENN: Final[str] = "atomic_energy_TENN"
 PER_ATOM_SPIN_KEY: Final[str] = "atomic_spin"
 
 NODE_SPIN: Final[str] = "node_spin"
@@ -34,6 +35,7 @@ EDGE_ENERGY_SEGNN: Final[str] = "edge_energy_SEGNN"
 EDGE_ENERGY_BQ: Final[str] = "edge_energy_BQ"
 EDGE_ENERGY_J: Final[str] = "edge_energy_J"
 EDGE_ENERGY_A: Final[str] = "edge_energy_A"
+EDGE_ENERGY_TENN: Final[str] = "edge_energy_TENN"    
     
 register_fields(node_fields=[NODE_SPIN, NODE_SPIN_LENGTH])
 register_fields(edge_fields=[EDGE_ENERGY, EDGE_FEATURES, EDGE_SPIN, 
@@ -41,6 +43,8 @@ register_fields(edge_fields=[EDGE_ENERGY, EDGE_FEATURES, EDGE_SPIN,
                              EDGE_J, EDGE_ENERGY_HEGNN, EDGE_ENERGY_SEGNN,
                              EDGE_K, EDGE_ENERGY_BQ,
                              EDGE_FEATURES_MSENN_J, EDGE_FEATURES_MSENN_A,
-                             EDGE_ENERGY_J, EDGE_ENERGY_A])
+                             EDGE_ENERGY_J, EDGE_ENERGY_A,
+                             EDGE_ENERGY_TENN])
 register_fields(graph_fields=[PER_ATOM_SPIN_KEY, PER_ATOM_ENERGY_HEGNN, PER_ATOM_ENERGY_SEGNN,
-                              PER_ATOM_ENERGY_BQ, PER_ATOM_ENERGY_J, PER_ATOM_ENERGY_A])
+                              PER_ATOM_ENERGY_BQ, PER_ATOM_ENERGY_J, PER_ATOM_ENERGY_A,
+                              PER_ATOM_ENERGY_TENN])

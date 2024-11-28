@@ -431,7 +431,7 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
         ), "Per-layer cutoffs must be >0. To remove higher layers entirely, lower `num_layers`."
         self._latent_dim = self.final_latent.out_features
         self._features_MSENN_J_dim = out_irreps.dim
-        self._features_MSENN_A_dim = o3.Irreps([(1, ir) for _, ir in out_irreps if ir != (1, 1)]).dim
+        self._features_MSENN_A_dim = o3.Irreps([(1, ir) for _, ir in out_irreps if ir != (1, 1, 1)]).dim
         self.register_buffer("_zero", torch.as_tensor(0.0))
 
         self.irreps_out.update(
@@ -450,7 +450,7 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
         
         self.irreps_out.update(
             {
-                self.features_MSENN_A: o3.Irreps([(1, ir) for _, ir in out_irreps if ir != (1, 1)])
+                self.features_MSENN_A: o3.Irreps([(1, ir) for _, ir in out_irreps if ir != (1, 1, 1)])
             }
         )
 
@@ -701,7 +701,6 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
         return data
     
 
-# Casual Allegro
 @compile_mode("script")
 class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
     # saved params
@@ -735,7 +734,7 @@ class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
         field: str = AtomicDataDict.EDGE_ATTRS_KEY,
         edge_invariant_field: str = AtomicDataDict.EDGE_EMBEDDING_KEY,
         node_invariant_field: str = AtomicDataDict.NODE_ATTRS_KEY,
-        env_embed_multiplicity: int = 32,
+        env_embed_multiplicity: int = 16,
         embed_initial_edge: bool = True,
         linear_after_env_embed: bool = False,
         nonscalars_include_parity: bool = True,
@@ -787,6 +786,9 @@ class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
                 self.field,
                 self.edge_invariant_field,
                 self.node_invariant_field,
+                self.latent_out_field,
+                _keys.NODE_SPIN_LENGTH,
+                _keys.EDGE_SPIN_DISTANCE_EMBEDDING
             ],
         )
 
@@ -839,8 +841,10 @@ class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
                 for (mul, ir) in env_embed_irreps:
                     if self.nonscalars_include_parity:
                         # add both parity options
-                        ir_out.append((1, (ir.l, 1)))
-                        ir_out.append((1, (ir.l, -1)))
+                        ir_out.append((1, (ir.l, 1, 1)))
+                        ir_out.append((1, (ir.l, -1, 1)))
+                        ir_out.append((1, (ir.l, 1, -1)))
+                        ir_out.append((1, (ir.l, -1, -1)))
                     else:
                         # add only the parity option seen in the inputs
                         ir_out.append((1, ir))
@@ -850,7 +854,7 @@ class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
             if layer_idx == self.num_layers - 1:
                 # ^ means we're doing the last layer
                 # No more TPs follow this, so only need scalars
-                ir_out = o3.Irreps([(1, (0, 1))])
+                ir_out = o3.Irreps([(1, (0, 1, 1))])
 
             # Prune impossible paths
             ir_out = o3.Irreps(
@@ -1001,9 +1005,16 @@ class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
                         mlp_input_dimension=(
                             (
                                 # Node invariants for center and neighbor (chemistry)
-                                2 * self.irreps_in[self.node_invariant_field].num_irreps
+                                2 * self.irreps_in[self.node_invariant_field].num_irreps  
                                 # Plus edge invariants for the edge (radius).
                                 + self.irreps_in[self.edge_invariant_field].num_irreps
+                                # (SPIN PART) 
+                                # Node invariants for the spin length 
+                                + 2 * self.irreps_in[_keys.NODE_SPIN_LENGTH].num_irreps
+                                # Plus edge spin distance embedding
+                                + self.irreps_in[_keys.EDGE_SPIN_DISTANCE_EMBEDDING].num_irreps
+                                # Plus output of the previous allegro layer latent features
+                                + self.irreps_in[self.latent_out_field].num_irreps
                             )
                         ),
                         mlp_output_dimension=None,
@@ -1100,15 +1111,10 @@ class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
         self.irreps_out.update(
             {
                 self.latent_out_field: o3.Irreps(
-                    [(self.final_latent.out_features, (0, 1))]
+                    [(self.final_latent.out_features, (0, 1, 1))]
                 ),
             }
         )
-        #        'edge_spin': o3.Irreps(
-        #            [(self.final_latent_spin.out_features, (0, 1))]
-        #        ),
-        #    }
-        #)
 
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
         """Evaluate.
@@ -1130,10 +1136,19 @@ class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
                 dim=-1,
             )
 
+        # position part
         edge_length = data[AtomicDataDict.EDGE_LENGTH_KEY]
         num_edges: int = len(edge_attr)
         edge_invariants = data[self.edge_invariant_field]
         node_invariants = data[self.node_invariant_field]
+        
+        # spin part
+        edge_spin_distance_embdedding = data[_keys.EDGE_SPIN_DISTANCE_EMBEDDING]
+        node_spin_length = data[_keys.NODE_SPIN_LENGTH]
+
+        # prev_latent
+        latent_MSENN = data[self.latent_out_field]
+        
         # pre-declare variables as Tensors for TorchScript
         scalars = self._zero
         coefficient_old = scalars
@@ -1157,7 +1172,12 @@ class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
             node_invariants[edge_center],
             node_invariants[edge_neighbor],
             edge_invariants,
+            node_spin_length[edge_center].unsqueeze(-1),
+            node_spin_length[edge_neighbor].unsqueeze(-1),
+            edge_spin_distance_embdedding,
+            latent_MSENN
         ]
+            
         # The nonscalar features. Initially, the edge data.
         features = edge_attr
 

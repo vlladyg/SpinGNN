@@ -41,7 +41,7 @@ class ScalarMLP(GraphModuleMixin, torch.nn.Module):
             required_irreps_in=[self.field],
         )
         assert len(self.irreps_in[self.field]) == 1
-        assert self.irreps_in[self.field][0].ir == (0, 1)  # scalars
+        assert self.irreps_in[self.field][0].ir == (0, 1) or self.irreps_in[self.field][0].ir == (0, 1, 1) # scalars
         in_dim = self.irreps_in[self.field][0].mul
         self._module = ScalarMLPFunction(
             mlp_input_dimension=in_dim,

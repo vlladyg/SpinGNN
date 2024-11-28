@@ -20,10 +20,12 @@ from allegro.nn import (
     EdgewiseEnergySumBQ,
     EdgewiseEnergySumJ,
     EdgewiseEnergySumA,
+    EdgewiseEnergySumTENN,
     EdgewiseSpinSum,
     AtomwiseReduceSpinGNNPlus,
     Allegro_Module,
     Allegro_Module_MSENN,
+    Allegro_Module_TENN,
     ScalarMLP,
 )
 #from allegro._keys import EDGE_FEATURES, EDGE_ENERGY, EDGE_SPIN, EDGE_SPIN_DISTANCE_EMBEDDING, EDGE_J
@@ -120,29 +122,29 @@ def SpinGNNPlus(config, initialize: bool, dataset: Optional[AtomicDataset] = Non
         "edge_eng_sum_J": EdgewiseEnergySumJ,
         # Sum onsite spin terms -> per-atom energies of onsite spin terms:
         "edge_eng_sum_A": EdgewiseEnergySumA,
-        # The SEGNN allegro model:
-        #"allegro_TENN": (
-        #    Allegro_Module_TENN,
-        #    dict(
-        #        field=AtomicDataDict.EDGE_ATTRS_KEY,  # initial input is the edge SH
-        #        edge_invariant_field=AtomicDataDict.EDGE_EMBEDDING_KEY,
-        #        node_invariant_field=AtomicDataDict.NODE_ATTRS_KEY,
-        #    ),
-        #),
-        #"edge_eng_TENN": (
-        #    ScalarMLP,
-        #    dict(field=EDGE_FEATURES, out_field=EDGE_ENERGY_TENN, 
-        #         mlp_latent_dimensions = [], mlp_output_dimension=1),
-        #),
-        #"edge_spin": (
-        #    ScalarMLP,
-        #    dict(field=EDGE_FEATURES, out_field=EDGE_SPIN, 
-        #         mlp_latent_dimensions = [], mlp_output_dimension=1),
-        #),
+        # The TENN allegro model:
+        "allegro_TENN": (
+            Allegro_Module_TENN,
+            dict(
+                field=AtomicDataDict.EDGE_ATTRS_KEY,  # initial input is the edge SH
+                edge_invariant_field=AtomicDataDict.EDGE_EMBEDDING_KEY,
+                node_invariant_field=AtomicDataDict.NODE_ATTRS_KEY,
+            ),
+        ),
+        "edge_eng_TENN": (
+            ScalarMLP,
+            dict(field=EDGE_FEATURES, out_field=EDGE_ENERGY_TENN, 
+                 mlp_latent_dimensions = [], mlp_output_dimension=1),
+        ),
+        "edge_spin": (
+            ScalarMLP,
+            dict(field=EDGE_FEATURES, out_field=EDGE_SPIN, 
+                 mlp_latent_dimensions = [], mlp_output_dimension=1),
+        ),
         # Sum SEGNN energy sum
-        #"edge_eng_sum_SEGNN": EdgewiseEnergySumSEGNN,
+        "edge_eng_sum_SEGNN": EdgewiseEnergySumTENN,
         # Sum spins -> per-atom spins
-        #"edge_spin": EdgewiseSpinSum,
+        "edge_spin": EdgewiseSpinSum,
         
         # Sum system energy:
         "total_energy_sum": (
