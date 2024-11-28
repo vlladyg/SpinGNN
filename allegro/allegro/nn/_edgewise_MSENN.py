@@ -274,6 +274,7 @@ class AtomwiseReduceSpinGNNPlus(GraphModuleMixin, torch.nn.Module):
         field_BQ: str,
         field_J: str,
         field_A: str,
+        field_TENN: str,
         out_field: Optional[str] = None,
         reduce="sum",
         avg_num_atoms=None,
@@ -292,6 +293,7 @@ class AtomwiseReduceSpinGNNPlus(GraphModuleMixin, torch.nn.Module):
         self.field_BQ = field_BQ
         self.field_J = field_J
         self.field_A = field_A
+        self.field_TENN = field_TENN
         self.out_field = f"{reduce}_{field_eng}" if out_field is None else out_field
         self._init_irreps(
             irreps_in=irreps_in,
@@ -302,7 +304,7 @@ class AtomwiseReduceSpinGNNPlus(GraphModuleMixin, torch.nn.Module):
 
         self.per_contrib_scales = per_contrib_scales
         if self.per_contrib_scales:
-            self.per_contrib_scales_SpinGNNPlus = torch.nn.Parameter(torch.ones(4))
+            self.per_contrib_scales_SpinGNNPlus = torch.nn.Parameter(torch.ones(5))
         else:
             self.register_buffer("per_contrib_scales_SpinGNNPlus", torch.Tensor())
     
@@ -323,12 +325,16 @@ class AtomwiseReduceSpinGNNPlus(GraphModuleMixin, torch.nn.Module):
         term_A = scatter(
             data[self.field_A], data[AtomicDataDict.BATCH_KEY], dim=0, reduce=self.reduce
         )
+        
+        term_TENN = scatter(
+            data[self.field_TENN], data[AtomicDataDict.BATCH_KEY], dim=0, reduce=self.reduce
+        )
 
         if self.per_contrib_scales:
-            for i, el in enumerate([term_eng, term_BQ, term_J, term_A]):
+            for i, el in enumerate([term_eng, term_BQ, term_J, term_A, term_TENN]):
                 el *= self.per_contrib_scales_SpinGNNPlus[i]
         
-        data[self.out_field] = term_eng + term_BQ + term_J + term_A
+        data[self.out_field] = term_eng + term_BQ + term_J + term_A + term_TENN
         
         if self.constant != 1.0:
             data[self.out_field] = data[self.out_field] * self.constant

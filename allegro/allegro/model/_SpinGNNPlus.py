@@ -142,9 +142,9 @@ def SpinGNNPlus(config, initialize: bool, dataset: Optional[AtomicDataset] = Non
                  mlp_latent_dimensions = [], mlp_output_dimension=1),
         ),
         # Sum SEGNN energy sum
-        "edge_eng_sum_SEGNN": EdgewiseEnergySumTENN,
+        "edge_eng_sum_TENN": EdgewiseEnergySumTENN,
         # Sum spins -> per-atom spins
-        "edge_spin": EdgewiseSpinSum,
+        "edge_spin_sum": EdgewiseSpinSum,
         
         # Sum system energy:
         "total_energy_sum": (
@@ -155,6 +155,7 @@ def SpinGNNPlus(config, initialize: bool, dataset: Optional[AtomicDataset] = Non
                 field_BQ=PER_ATOM_ENERGY_BQ,
                 field_J=PER_ATOM_ENERGY_J,
                 field_A=PER_ATOM_ENERGY_A,
+                field_TENN=PER_ATOM_ENERGY_TENN,
                 out_field=AtomicDataDict.TOTAL_ENERGY_KEY,
             ),
         ),
