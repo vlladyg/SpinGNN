@@ -31,7 +31,7 @@ from allegro.nn import (
 #from allegro._keys import EDGE_FEATURES, EDGE_ENERGY, EDGE_SPIN, EDGE_SPIN_DISTANCE_EMBEDDING, EDGE_J
 #from allegro._keys import EDGE_ENERGY_SEGNN
 from allegro._keys import *
-from allegro import RadialBasisSpinDistanceEncoding
+from allegro import RadialBasisSpinDistanceEncoding, SphericalHarmonicEdgeAttrsTENN
 
 
 from nequip.model import builder_utils
@@ -65,8 +65,27 @@ def SpinGNNPlus(config, initialize: bool, dataset: Optional[AtomicDataset] = Non
         config["irreps_edge_sh"] = irreps_edge_sh
         config["nonscalars_include_parity"] = nonscalars_include_parity
 
+    # Handle simple irreps
+    if "l_max" in config:
+        l_max = int(config["l_max"])
+        parity_setting = config["parity"]
+        assert parity_setting in ("o3_full", "o3_restricted", "so3")
+        irreps_edge_sh_TENN = repr(
+            o3.Irreps.spherical_harmonics(
+                l_max, p=(1 if parity_setting == "so3" else -1), t = 1
+            ) 
+        )
+        nonscalars_include_parity = parity_setting == "o3_full"
+        # check consistant
+        config["irreps_edge_sh_TENN"] =  irreps_edge_sh_TENN
+        assert config.get("irreps_edge_sh_TENN", irreps_edge_sh_TENN) == irreps_edge_sh_TENN
+        assert (
+            config.get("nonscalars_include_parity", nonscalars_include_parity)
+            == nonscalars_include_parity
+        )
 
-    print(config)
+
+    #print(config)
     layers = {
         # -- Encode --
         # Get various edge invariants
@@ -122,6 +141,8 @@ def SpinGNNPlus(config, initialize: bool, dataset: Optional[AtomicDataset] = Non
         "edge_eng_sum_J": EdgewiseEnergySumJ,
         # Sum onsite spin terms -> per-atom energies of onsite spin terms:
         "edge_eng_sum_A": EdgewiseEnergySumA,
+        # Get edge nonscalars
+        "spharm_TENN": SphericalHarmonicEdgeAttrsTENN,
         # The TENN allegro model:
         "allegro_TENN": (
             Allegro_Module_TENN,

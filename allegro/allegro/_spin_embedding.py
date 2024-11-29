@@ -49,12 +49,15 @@ def with_edge_spin_length(data: Type, with_distance: bool = True) -> Type:
     # Build node spin norms
     if not _keys.NODE_SPIN_LENGTH in data:
         data[_keys.NODE_SPIN_LENGTH] = torch.linalg.norm(data[_keys.NODE_SPIN], dim=-1)
+        
 
     # Build spin distance
     if with_distance and _keys.EDGE_SPIN_DISTANCE not in data:
         edge_index = data[AtomicDataDict.EDGE_INDEX_KEY]
         unit_spin = data[_keys.NODE_SPIN]/data[_keys.NODE_SPIN_LENGTH][:, None]
-
+        data[_keys.NODE_SPIN_VEC] = unit_spin
+        
+        
         data[_keys.EDGE_SPIN_DISTANCE] = torch.einsum("ki,kj->k", unit_spin[edge_index[1]], unit_spin[edge_index[0]])
         
     return data
@@ -87,4 +90,66 @@ class RadialBasisSpinDistanceEncoding(GraphModuleMixin, torch.nn.Module):
             self.basis(edge_spin_distance) #* self.cutoff(edge_length)[:, None]
         )
         data[self.out_field] = edge_spin_distance_embedded
+        return data
+
+    
+    
+@compile_mode("script")
+class SphericalHarmonicEdgeAttrsTENN(GraphModuleMixin, torch.nn.Module):
+    """Construct edge attrs as spherical harmonic projections of edge vectors and nodespins.
+
+    Parameters follow ``e3nn.o3.spherical_harmonics``.
+
+    Args:
+        irreps_edge_sh (int, str, or o3.Irreps): if int, will be treated as lmax for o3.Irreps.spherical_harmonics(lmax)
+        edge_sh_normalization (str): the normalization scheme to use
+        edge_sh_normalize (bool, default: True): whether to normalize the spherical harmonics
+        out_field (str, default: AtomicDataDict.EDGE_ATTRS_KEY: data/irreps field
+    """
+
+    out_field: str
+
+    def __init__(
+        self,
+        irreps_edge_sh_TENN: Union[int, str, o3.Irreps],
+        edge_sh_normalization: str = "component",
+        edge_sh_normalize: bool = True,
+        irreps_in=None,
+        out_field: str = 'edge_attr_tmp',
+        #out_field: str = AtomicDataDict.EDGE_ATTRS_KEY,
+    ):
+        super().__init__()
+        self.out_field = out_field
+
+        if isinstance(irreps_edge_sh_TENN, int):
+            self.irreps_edge_sh_TENN = o3.Irreps.spherical_harmonics(irreps_edge_sh_TENN)
+        else:
+            self.irreps_edge_sh_TENN = o3.Irreps(irreps_edge_sh_TENN)
+        self._init_irreps(
+            irreps_in=irreps_in,
+            irreps_out={out_field: self.irreps_edge_sh_TENN + self.irreps_edge_sh_TENN + self.irreps_edge_sh_TENN},
+        )
+        self.sh_edge_vec = o3.SphericalHarmonics(
+            self.irreps_edge_sh_TENN, edge_sh_normalize, edge_sh_normalization
+        )
+        self.sh_node_spin_vec = o3.SphericalHarmonics(
+            self.irreps_edge_sh_TENN, edge_sh_normalize, edge_sh_normalization
+        )
+        
+
+    def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
+        #data = AtomicDataDict.with_edge_vectors(data, with_lengths=False)
+        edge_vec = data[AtomicDataDict.EDGE_VECTORS_KEY]
+        node_spin_vec = data[_keys.NODE_SPIN_VEC]
+        
+        edge_sh = self.sh_edge_vec(edge_vec)
+        
+        edge_node_spin = self.sh_node_spin_vec(node_spin_vec)
+        
+        edge_index = data[AtomicDataDict.EDGE_INDEX_KEY]
+        edge_node_center = edge_node_spin[edge_index[1]]
+        edge_node_neighbor = edge_node_spin[edge_index[0]]
+        
+        
+        data[self.out_field] = torch.concat([edge_sh, edge_node_center, edge_node_neighbor], dim = -1)
         return data
