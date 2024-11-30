@@ -72,7 +72,7 @@ def SpinGNNPlus(config, initialize: bool, dataset: Optional[AtomicDataset] = Non
         assert parity_setting in ("o3_full", "o3_restricted", "so3")
         irreps_edge_sh_TENN = repr(
             o3.Irreps.spherical_harmonics(
-                l_max, p=(1 if parity_setting == "so3" else -1), t = 1
+                l_max, p=1, t = -1
             ) 
         )
         nonscalars_include_parity = parity_setting == "o3_full"

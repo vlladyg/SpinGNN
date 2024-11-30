@@ -127,13 +127,15 @@ class SphericalHarmonicEdgeAttrsTENN(GraphModuleMixin, torch.nn.Module):
             self.irreps_edge_sh_TENN = o3.Irreps(irreps_edge_sh_TENN)
         self._init_irreps(
             irreps_in=irreps_in,
-            irreps_out={out_field: self.irreps_edge_sh_TENN + self.irreps_edge_sh_TENN + self.irreps_edge_sh_TENN},
+            irreps_out={out_field: o3.Irreps([(3, ir) for _, ir in self.irreps_edge_sh_TENN])},
         )
         self.sh_edge_vec = o3.SphericalHarmonics(
-            self.irreps_edge_sh_TENN, edge_sh_normalize, edge_sh_normalization
+            self.irreps_edge_sh_TENN, edge_sh_normalize, edge_sh_normalization, 
+            time_reversal=True, parity = False
         )
         self.sh_node_spin_vec = o3.SphericalHarmonics(
-            self.irreps_edge_sh_TENN, edge_sh_normalize, edge_sh_normalization
+            self.irreps_edge_sh_TENN, edge_sh_normalize, edge_sh_normalization, 
+            time_reversal=True, parity = False
         )
         
 
@@ -151,5 +153,32 @@ class SphericalHarmonicEdgeAttrsTENN(GraphModuleMixin, torch.nn.Module):
         edge_node_neighbor = edge_node_spin[edge_index[0]]
         
         
-        data[self.out_field] = torch.concat([edge_sh, edge_node_center, edge_node_neighbor], dim = -1)
+        # calculating ind for coping
+        i_shift_0 = 0
+        i_shift_1 = 1
+        i_shift_2 = 2
+        ind_0 = []
+        ind_1 = []
+        ind_2 = []
+        for l in range(self.irreps_edge_sh_TENN.lmax + 1):
+            ind_0 += list(range(i_shift_0, i_shift_0 + 2*l+1))
+            ind_1 += list(range(i_shift_1, i_shift_1 + 2*l+1))
+            ind_2 += list(range(i_shift_2, i_shift_2 + 2*l+1))
+
+            i_shift_0 += 3*(2*l+1)
+            i_shift_1 = i_shift_0 + 2*(l+1) + 1
+            i_shift_2 = i_shift_1 + 2*(l+1) + 1
+        
+        ind_0 = torch.tensor(ind_0, dtype = torch.long)
+        ind_1 = torch.tensor(ind_1, dtype = torch.long)
+        ind_2 = torch.tensor(ind_2, dtype = torch.long)
+        
+        data[self.out_field] = torch.zeros((edge_sh.shape[0], self.irreps_out[self.out_field].dim))
+        
+        print(edge_sh.shape)
+        print(data[self.out_field].shape)
+        data[self.out_field] = torch.index_copy(data[self.out_field], -1, ind_0, edge_sh)
+        data[self.out_field] = torch.index_copy(data[self.out_field], -1, ind_1, edge_node_center)
+        data[self.out_field] = torch.index_copy(data[self.out_field], -1, ind_2, edge_node_neighbor)
+        
         return data
