@@ -88,8 +88,6 @@ class MakeWeightedChannelsTENN(torch.nn.Module):
         # edge_attr are [z, i]
         # i runs over all irreps, which is why the weights need
         # to be indexed in order to go from [num_i] to [i]
-        print(self.multiplicity_out, self._num_irreps)
-        print(edge_attr.shape, weights.shape)
         return torch.einsum(
             "zvi,zvui->zui",
             edge_attr,
@@ -98,5 +96,5 @@ class MakeWeightedChannelsTENN(torch.nn.Module):
                 3,
                 self.multiplicity_out,
                 self._num_irreps,
-            )[:, :, self._w_index],
+            )[:, :, :, self._w_index],
         )
