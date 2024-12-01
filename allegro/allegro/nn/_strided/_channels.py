@@ -91,10 +91,11 @@ class MakeWeightedChannelsTENN(torch.nn.Module):
         print(self.multiplicity_out, self._num_irreps)
         print(edge_attr.shape, weights.shape)
         return torch.einsum(
-            "zi,zui->zui",
+            "zvi,zvui->zui",
             edge_attr,
             weights.view(
                 -1,
+                3,
                 self.multiplicity_out,
                 self._num_irreps,
             )[:, :, self._w_index],
