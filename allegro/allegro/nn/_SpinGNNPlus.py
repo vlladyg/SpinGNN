@@ -15,7 +15,7 @@ from nequip.utils.tp_utils import tp_path_exists
 from ._fc import ScalarMLPFunction
 from .. import _keys
 
-from ._strided import Contracter, MakeWeightedChannels, Linear
+from ._strided import Contracter, MakeWeightedChannels, MakeWeightedChannelsTENN, Linear
 from .cutoffs import cosine_cutoff, polynomial_cutoff
 
 @compile_mode("script")
@@ -129,9 +129,10 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
 
         # Embed to the spharm * it as mul
         input_irreps = self.irreps_in[self.field]
+        #print(input_irreps)
         # this is not inherant, but no reason to fix right now:
         assert all(mul == 1 for mul, ir in input_irreps)
-        env_embed_irreps = o3.Irreps([(1, ir) for _, ir in input_irreps])
+        env_embed_irreps = o3.Irreps([(3, ir) for _, ir in input_irreps])
         assert (
             env_embed_irreps[0].ir == SCALAR
         ), "env_embed_irreps must start with scalars"
@@ -812,7 +813,7 @@ class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
         # Embed to the spharm * it as mul
         input_irreps = self.irreps_in[self.field]
         # this is not inherant, but no reason to fix right now:
-        assert all(mul == 1 for mul, ir in input_irreps)
+        assert all(mul == 3 for mul, ir in input_irreps)
         env_embed_irreps = o3.Irreps([(1, ir) for _, ir in input_irreps])
         assert (
             env_embed_irreps[0].ir == SCALAR
@@ -897,7 +898,7 @@ class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
         del tps_irreps
 
         # Environment builder:
-        self._env_weighter = MakeWeightedChannels(
+        self._env_weighter = MakeWeightedChannelsTENN(
             irreps_in=input_irreps,
             multiplicity_out=env_embed_multiplicity,
             pad_to_alignment=pad_to_alignment,

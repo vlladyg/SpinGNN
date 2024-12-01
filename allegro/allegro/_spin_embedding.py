@@ -127,7 +127,7 @@ class SphericalHarmonicEdgeAttrsTENN(GraphModuleMixin, torch.nn.Module):
             self.irreps_edge_sh_TENN = o3.Irreps(irreps_edge_sh_TENN)
         self._init_irreps(
             irreps_in=irreps_in,
-            irreps_out={out_field: o3.Irreps([(3, ir) for _, ir in self.irreps_edge_sh_TENN])},
+            irreps_out={out_field: o3.Irreps([(3, ir) for _, ir in self.irreps_edge_sh_TENN]).sort().irreps},
         )
         self.sh_edge_vec = o3.SphericalHarmonics(
             self.irreps_edge_sh_TENN, edge_sh_normalize, edge_sh_normalization, 
