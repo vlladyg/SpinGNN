@@ -48,13 +48,13 @@ def with_edge_spin_length(data: Type, with_distance: bool = True) -> Type:
     """
     # Build node spin norms
     if not _keys.NODE_SPIN_LENGTH in data:
-        data[_keys.NODE_SPIN_LENGTH] = torch.linalg.norm(data[_keys.NODE_SPIN], dim=-1)
+        data[_keys.NODE_SPIN_LENGTH] = torch.linalg.norm(data[AtomicDataDict.NODE_SPIN], dim=-1)
         
 
     # Build spin distance
     if with_distance and _keys.EDGE_SPIN_DISTANCE not in data:
         edge_index = data[AtomicDataDict.EDGE_INDEX_KEY]
-        unit_spin = data[_keys.NODE_SPIN]/data[_keys.NODE_SPIN_LENGTH][:, None]
+        unit_spin = data[AtomicDataDict.NODE_SPIN]/data[_keys.NODE_SPIN_LENGTH][:, None]
         data[_keys.NODE_SPIN_VEC] = unit_spin
         
         

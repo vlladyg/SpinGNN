@@ -31,7 +31,7 @@ model_builders:
  - allegro.model.SpinGNNPlus
  # the typical model builders from `nequip` can still be used:
  - PerSpeciesRescale
- - ForceOutput
+ - ParaStressForceSpinForceOutput
  - RescaleEnergyEtc
 
 # radial cutoff in length units

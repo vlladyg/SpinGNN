@@ -4,6 +4,7 @@ from ._grads import (
     PartialForceOutput,
     StressForceOutput,
     ParaStressForceOutput,
+    ParaStressForceSpinForceOutput,
 )
 from ._scaling import RescaleEnergyEtc, PerSpeciesRescale
 from ._weight_init import (
@@ -24,6 +25,7 @@ __all__ = [
     PartialForceOutput,
     StressForceOutput,
     ParaStressForceOutput,
+    ParaStressForceSpinForceOutput,
     RescaleEnergyEtc,
     PerSpeciesRescale,
     uniform_initialize_FCs,

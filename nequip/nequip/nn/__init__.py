@@ -12,6 +12,7 @@ from ._grad_output import (  # noqa: F401
     PartialForceOutput,
     StressOutput,
     ParaStressOutput,
+    ParaStressSpinForceOutput,
 )  # noqa: F401
 from ._rescale import RescaleOutput  # noqa: F401
 from ._convnetlayer import ConvNetLayer  # noqa: F401

@@ -13,6 +13,8 @@ else:
 # == Define allowed keys as constants ==
 # The positions of the atoms in the system
 POSITIONS_KEY: Final[str] = "pos"
+# The spin of the atoms in the system
+NODE_SPIN: Final[str] = "node_spin"
 # The [2, n_edge] index tensor giving center -> neighbor relations
 EDGE_INDEX_KEY: Final[str] = "edge_index"
 # A [n_edge, 3] tensor of how many periodic cells each edge crosses in each cell vector
@@ -54,6 +56,7 @@ NODE_ATTRS_KEY: Final[str] = "node_attrs"
 PER_ATOM_ENERGY_KEY: Final[str] = "atomic_energy"
 TOTAL_ENERGY_KEY: Final[str] = "total_energy"
 FORCE_KEY: Final[str] = "forces"
+SPIN_FORCE_KEY: Final[str] = "spin_forces"
 PARTIAL_FORCE_KEY: Final[str] = "partial_forces"
 STRESS_KEY: Final[str] = "stress"
 VIRIAL_KEY: Final[str] = "virial"
@@ -63,6 +66,7 @@ ALL_ENERGY_KEYS: Final[List[str]] = [
     PER_ATOM_ENERGY_KEY,
     TOTAL_ENERGY_KEY,
     FORCE_KEY,
+    SPIN_FORCE_KEY,
     PARTIAL_FORCE_KEY,
     STRESS_KEY,
     VIRIAL_KEY,
