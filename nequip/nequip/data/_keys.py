@@ -37,7 +37,7 @@ BASIC_STRUCTURE_KEYS: Final[List[str]] = [
     ATOM_TYPE_KEY,
     ATOMIC_NUMBERS_KEY,
 ]
-
+    
 # A [n_edge, 3] tensor of displacement vectors associated to edges
 EDGE_VECTORS_KEY: Final[str] = "edge_vectors"
 # A [n_edge] tensor of the lengths of EDGE_VECTORS
