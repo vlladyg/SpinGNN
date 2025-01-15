@@ -23,7 +23,7 @@ class ETN_Module(nn.Module, GraphModuleMixin):
     def __init__(self,
                  d: int,
                  Nc: List[int],
-                 N_rank_ett: int, 
+                 N_rank_ett: List[int], 
                  irreps_in=None,
                  out_field: str = _keys.PER_ATOM_ENERGY_ETN):
         
@@ -54,7 +54,11 @@ class ETN_Module(nn.Module, GraphModuleMixin):
         lmax = irreps_in[_keys.EDGE_FEATURES_F].lmax # maximum spherical harmonic
         
         
+        # Second order cores(first and last)
+        core2_1 = torch.nn.Parameter((lmax, Nc[0], N_rank_ett[0]))
+        core2_d = torch.nn.Parameter((lmax, N_rank_ett[-1], Nc[-1]))
         
+        self.cores = [core2_1, core2_d]
         
         self.reset_parameters()
         
@@ -68,7 +72,6 @@ class ETN_Module(nn.Module, GraphModuleMixin):
         return data
     
     def reset_parameters(self):
-        #torch.nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-        #torch.nn.init.kaiming_uniform_(self.A, a=math.sqrt(3))
-        #torch.nn.init.kaiming_uniform_(self.B, a=math.sqrt(3))
+        for core in self.cores:
+            torch.nn.init.kaiming_uniform_(core, a=math.sqrt(3))
         pass
