@@ -6,6 +6,8 @@ from ._edgewise_MSENN import EdgewiseEnergySumBQ, EdgewiseEnergySumJ, EdgewiseEn
 from ._fc import ScalarMLP, ScalarMLPFunction
 from ._norm_basis import NormalizedBasis
 from ._edge_features_F import EdgeFeatures_F
+from ._etn import ETN_Module
+
 
 __all__ = [
     Allegro_Module,
@@ -27,5 +29,6 @@ __all__ = [
     ScalarMLP,
     ScalarMLPFunction,
     NormalizedBasis,
-    EdgeFeatures_F
+    EdgeFeatures_F,
+    ETN_Module
 ]

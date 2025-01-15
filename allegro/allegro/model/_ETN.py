@@ -28,7 +28,8 @@ from allegro.nn import (
     Allegro_Module_TENN,
     ScalarMLP,
     EdgewiseFSum,
-    EdgeFeatures_F
+    EdgeFeatures_F,
+    ETN_Module
 )
 #from allegro._keys import EDGE_FEATURES, EDGE_ENERGY, EDGE_SPIN, EDGE_SPIN_DISTANCE_EMBEDDING, EDGE_J
 #from allegro._keys import EDGE_ENERGY_SEGNN
@@ -99,6 +100,14 @@ def ETN(config, initialize: bool, dataset: Optional[AtomicDataset] = None):
         ),
         # Sum edgewise f features -> node f features:
         "edge_f_sum": EdgewiseFSum,
+        # ETN Layer:
+        "etn": (
+            ETN_Module,
+            dict(
+            d = 3,
+            N_rank_ett = config['N_rank_ett'],
+            out_field = PER_ATOM_ENERGY_ETN),
+        ),
         # The core allegro model:
         "allegro": (
             Allegro_Module,

@@ -3,6 +3,7 @@ import math
 import functools
 
 import torch
+from torch import nn
 from torch_runstats.scatter import scatter
 
 from e3nn import o3
@@ -17,6 +18,8 @@ from .. import _keys
 
 from ._strided import Contracter, MakeWeightedChannels, Linear
 from .cutoffs import cosine_cutoff, polynomial_cutoff
+from e3nn.o3 import wigner_3j
+
 
 
 # Triangular ineguality for path existance
@@ -47,9 +50,9 @@ class ETN_Module(nn.Module, GraphModuleMixin):
                 _keys.NODE_FEATURES_F
             ],
             irreps_out={_keys.NODE_FEATURES_ETN: o3.Irreps(
-                    [(N_rank_ett, ir) for _, ir in irreps_in[_keys.NODE_FEATURES_F] ]),
+                    [(self.Nc, ir) for _, ir in irreps_in[_keys.NODE_FEATURES_F] ]),
                         out_field: o3.Irreps([(1, (0, 1))])}
-        
+        )
         
         
         # Parameters of the network
@@ -59,8 +62,8 @@ class ETN_Module(nn.Module, GraphModuleMixin):
         
         
         # Second order cores(first and last)
-        core2_1 = torch.nn.Parameter((lmax, Nc, N_rank_ett[0]))
-        core2_d = torch.nn.Parameter((lmax, N_rank_ett[-1], Nc))
+        self.core2_1 = torch.nn.Parameter(torch.Tensor(lmax, self.Nc, N_rank_ett[0]))
+        self.core2_d = torch.nn.Parameter(torch.Tensor(lmax, N_rank_ett[-1], self.Nc))
         
         
         
@@ -70,11 +73,7 @@ class ETN_Module(nn.Module, GraphModuleMixin):
         w3j_big = [[[wigner_3j(i, j, k) if tri_ineq(i, j, k) else None for i in range (lmax)] for j in range(lmax)] for k in range(lmax)]
         
         # all third order free parameters
-        core3 = [ [[[torch.nn.Parameter((N_rank_ett[r], Nc, N_rank_ett[r+1])) if tri_ineq(i, j, k) else None for i in range (lmax)] for j in range(lmax)] for k in range(lmax)] for r in d - 2] 
-        
-        
-        # Setting all parameters in one list
-        self.cores = [core2_1] + core3 + [core2_d]
+        self.cores3 = [{(i,j,k): torch.nn.Parameter(torch.Tensor(N_rank_ett[r], self.Nc, N_rank_ett[r+1])) for i in range (lmax) for j in range(lmax) for k in range(lmax) if tri_ineq(i, j, k)} for r in range(d - 2)] 
         
         self.reset_parameters()
         
@@ -95,7 +94,7 @@ class ETN_Module(nn.Module, GraphModuleMixin):
         
         # First transform using second order tensors
         for i, slice in enumerate(slices):
-            u_out[:, slice, :] = torch.einsum('ij,Nmi->Nmj', self.cores[-1][i], F[:, slice, :])
+            u_out[:, slice, :] = torch.einsum('ij,Nmi->Nmj', self.cores2_d[i], F[:, slice, :])
         
         # Series third order tensors
         for i in range(self.d - 2, 0, -1):
@@ -108,14 +107,15 @@ class ETN_Module(nn.Module, GraphModuleMixin):
                 for l1 in range(self.lmax + 1):
                     for l2 in range(self.lmax + 1):
                         if tri_ineq(l1, l2, l3):
-                            T_2_tmp[l1][l2] += torch.einsum('abcijk,Nck->Nabij', T_3[l1][l2][l3], u_out[:, slice, :])
+                            T_3 = w3j_big[l1, l2, l3][..., None, None, None] * self.cores3[(l1, l2, l3)][None, None, None, ...]
+                            T_2_tmp[l1][l2] += torch.einsum('abcijk,Nck->Nabij', T_3, u_out[:, slice, :])
             
             
             # Second contraction with F vector
             u_out_new = torch.zeros((F.shape[:-1], self.N_rank_ett[i - 1]), dtype=F.dtype,
                             device=F.device) # temporary verctor output of etn
             
-            for l1 in in range(self.lmax + 1):    
+            for l1 in range(self.lmax + 1):    
                 for l2, slice in enumerate(slices):
                     u_out_new[:, slices[l1], :] += torch.einsum('Nabij,Nbj->Nai', T_2_tmp[l1][l2], F[:, slice, :])
             
@@ -124,7 +124,7 @@ class ETN_Module(nn.Module, GraphModuleMixin):
             
         # Last transform using second order tensor
         for i, slice in enumerate(slices):
-            data[_keys.NODE_FEATURES_ETN][:, slice, :] = torch.einsum('ij,Nmi->Nmj', self.cores[0][i], u_out[:, slices, :])
+            data[_keys.NODE_FEATURES_ETN][:, slice, :] = torch.einsum('ij,Nmi->Nmj', self.cores2_1[i], u_out[:, slices, :])
         
         
         # Reduction to scalar
@@ -134,6 +134,9 @@ class ETN_Module(nn.Module, GraphModuleMixin):
         return data
     
     def reset_parameters(self):
-        for core in self.cores:
-            torch.nn.init.kaiming_uniform_(core, a=math.sqrt(3))
-        pass
+        torch.nn.init.kaiming_uniform_(self.core2_1, a=math.sqrt(3))
+        torch.nn.init.kaiming_uniform_(self.core2_d, a=math.sqrt(3))
+        
+        for core in self.cores3:
+            for key in core:
+                torch.nn.init.kaiming_uniform_(core[key], a=math.sqrt(3))
