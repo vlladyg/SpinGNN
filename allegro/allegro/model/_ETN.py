@@ -106,23 +106,8 @@ def ETN(config, initialize: bool, dataset: Optional[AtomicDataset] = None):
             dict(
             d = config['d'],
             N_rank_ett = config['N_rank_ett'],
-            out_field = PER_ATOM_ENERGY_ETN),
+            out_field = AtomicDataDict.PER_ATOM_ENERGY_KEY),
         ),
-        # The core allegro model:
-        "allegro": (
-            Allegro_Module,
-            dict(
-                field=AtomicDataDict.EDGE_ATTRS_KEY,  # initial input is the edge SH
-                edge_invariant_field=AtomicDataDict.EDGE_EMBEDDING_KEY,
-                node_invariant_field=AtomicDataDict.NODE_ATTRS_KEY,
-            ),
-        ),
-        "edge_eng": (
-            ScalarMLP,
-            dict(field=EDGE_FEATURES, out_field=EDGE_ENERGY, mlp_output_dimension=1),
-        ),
-        # Sum edgewise energies -> per-atom energies:
-        "edge_eng_sum": EdgewiseEnergySum,
         # Sum system energy:
         "total_energy_sum": (
             AtomwiseReduce,

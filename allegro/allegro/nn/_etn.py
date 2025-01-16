@@ -33,7 +33,7 @@ class ETN_Module(nn.Module, GraphModuleMixin):
                  d: int,
                  N_rank_ett: List[int], 
                  irreps_in=None,
-                 out_field: str = _keys.PER_ATOM_ENERGY_ETN):
+                 out_field: str = AtomicDataDict.PER_ATOM_ENERGY_KEY):
         
         super().__init__()
         self.out_field = out_field
