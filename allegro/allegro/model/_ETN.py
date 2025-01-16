@@ -104,7 +104,7 @@ def ETN(config, initialize: bool, dataset: Optional[AtomicDataset] = None):
         "etn": (
             ETN_Module,
             dict(
-            d = 3,
+            d = config['d'],
             N_rank_ett = config['N_rank_ett'],
             out_field = PER_ATOM_ENERGY_ETN),
         ),

@@ -59,21 +59,21 @@ class ETN_Module(nn.Module, GraphModuleMixin):
         
         # tensors for atomic features encoding
         lmax = irreps_in[_keys.EDGE_FEATURES_F].lmax # maximum spherical harmonic
-        
+        self.lmax = lmax
         
         # Second order cores(first and last)
-        self.core2_1 = torch.nn.Parameter(torch.Tensor(lmax, self.Nc, N_rank_ett[0]))
-        self.core2_d = torch.nn.Parameter(torch.Tensor(lmax, N_rank_ett[-1], self.Nc))
+        self.core2_1 = torch.nn.Parameter(torch.Tensor(lmax+1, self.Nc, N_rank_ett[0]))
+        self.core2_d = torch.nn.Parameter(torch.Tensor(lmax+1, N_rank_ett[-1], self.Nc))
         
         
         
         # Third order cores
         
         # all wigner3j 
-        w3j_big = [[[wigner_3j(i, j, k) if tri_ineq(i, j, k) else None for i in range (lmax)] for j in range(lmax)] for k in range(lmax)]
+        self.w3j_big = [[[wigner_3j(l1, l2, l3) if tri_ineq(l1, l2, l3) else None for l3 in range (lmax+1)] for l2 in range(lmax+1)] for l1 in range(lmax+1)]
         
         # all third order free parameters
-        self.cores3 = [{(i,j,k): torch.nn.Parameter(torch.Tensor(N_rank_ett[r], self.Nc, N_rank_ett[r+1])) for i in range (lmax) for j in range(lmax) for k in range(lmax) if tri_ineq(i, j, k)} for r in range(d - 2)] 
+        self.cores3 = [{(l1, l2, l3): torch.nn.Parameter(torch.Tensor(N_rank_ett[r], self.Nc, N_rank_ett[r+1])) for l1 in range (lmax+1) for l2 in range(lmax+1) for l3 in range(lmax+1) if tri_ineq(l1, l2, l3)} for r in range(d - 2)] 
         
         self.reset_parameters()
         
@@ -83,36 +83,36 @@ class ETN_Module(nn.Module, GraphModuleMixin):
         F = data[_keys.NODE_FEATURES_F]
         
         # Defining tensors for TorchScript
-        u_out = torch.zeros((F.shape[:-1], self.N_rank_ett[-1]), dtype=F.dtype,
+        u_out = torch.zeros((F.shape[0], F.shape[1], self.N_rank_ett[-1]), dtype=F.dtype,
             device=F.device) # temporary verctor output of etn
             
         
-        data[_keys.NODE_FEATURES_ETN] = torch.zeros_like(F.shape, dtype=F.dtype,
+        data[_keys.NODE_FEATURES_ETN] = torch.zeros_like(F, dtype=F.dtype,
             device=F.device) # final feature output
         
-        slices = self.irreps[_keys.EDGE_ATTRS].slices() # slices over irreps
+        slices = self.irreps_in[AtomicDataDict.EDGE_ATTRS_KEY].slices() # slices over irreps
         
         # First transform using second order tensors
         for i, slice in enumerate(slices):
-            u_out[:, slice, :] = torch.einsum('ij,Nmi->Nmj', self.cores2_d[i], F[:, slice, :])
+            u_out[:, slice, :] = torch.einsum('ij,Nmj->Nmi', self.core2_d[i], F[:, slice, :])
         
         # Series third order tensors
-        for i in range(self.d - 2, 0, -1):
+        for i in range(self.d - 2 - 1, -1, -1):
             
             # TODO: now define localy, mb define for all, to ensure computational graph
-            T_2_tmp = [[torch.zeros(F.shape[0], 2*l1+1, 2*l2+1, self.N_rank_ett[i - 1], self.Nc, dtype=F.dtype, device=F.device) for l1 in range(self.lmax + 1)] for l1 in range(self.lmax + 1) for l2 in range(self.lmax + 1)] # result of first reduction of order 3 tensor
+            T_2_tmp = [[torch.zeros(F.shape[0], 2*l1+1, 2*l2+1, self.N_rank_ett[i - 1], self.Nc, dtype=F.dtype, device=F.device) for l2 in range(self.lmax + 1)] for l1 in range(self.lmax + 1)] # result of first reduction of order 3 tensor
             
             # First contraction with previous feature vector
-            for l3, slice in enumerate(slices):
-                for l1 in range(self.lmax + 1):
-                    for l2 in range(self.lmax + 1):
+            for l1 in range(self.lmax + 1):
+                for l2 in range(self.lmax + 1):
+                    for l3, slice in enumerate(slices):
                         if tri_ineq(l1, l2, l3):
-                            T_3 = w3j_big[l1, l2, l3][..., None, None, None] * self.cores3[(l1, l2, l3)][None, None, None, ...]
+                            T_3 = self.w3j_big[l1][l2][l3][..., None, None, None] * self.cores3[i][(l1, l2, l3)][None, None, None, ...]
                             T_2_tmp[l1][l2] += torch.einsum('abcijk,Nck->Nabij', T_3, u_out[:, slice, :])
             
             
             # Second contraction with F vector
-            u_out_new = torch.zeros((F.shape[:-1], self.N_rank_ett[i - 1]), dtype=F.dtype,
+            u_out_new = torch.zeros((F.shape[0], F.shape[1], self.N_rank_ett[i - 1]), dtype=F.dtype,
                             device=F.device) # temporary verctor output of etn
             
             for l1 in range(self.lmax + 1):    
@@ -124,7 +124,7 @@ class ETN_Module(nn.Module, GraphModuleMixin):
             
         # Last transform using second order tensor
         for i, slice in enumerate(slices):
-            data[_keys.NODE_FEATURES_ETN][:, slice, :] = torch.einsum('ij,Nmi->Nmj', self.cores2_1[i], u_out[:, slices, :])
+            data[_keys.NODE_FEATURES_ETN][:, slice, :] = torch.einsum('ij,Nmj->Nmi', self.core2_1[i], u_out[:, slice, :])
         
         
         # Reduction to scalar
