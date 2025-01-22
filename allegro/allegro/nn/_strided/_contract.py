@@ -43,6 +43,12 @@ def codegen_strided_tensor_product_forward(
     # check the instructions
     assert specialized_code
 
+    #print(irreps_in1, irreps_in2, irreps_out)
+    #print(instructions[0].connection_mode)
+    #print(instructions[0].has_weight)
+    #print(sparse_mode)
+    #print(shared_weights)
+    
     connection_mode = instructions[0].connection_mode
     if not all(ins.connection_mode == connection_mode for ins in instructions):
         return None
@@ -371,7 +377,7 @@ def Contracter(
     assert all(mul == irreps_in2[0].mul for mul, ir in irreps_in2)
     irreps_out = o3.Irreps(irreps_out)
     assert all(mul == irreps_out[0].mul for mul, ir in irreps_out)
-
+    
     mod = codegen_strided_tensor_product_forward(
         irreps_in1,
         [1.0 for _ in irreps_in1],
