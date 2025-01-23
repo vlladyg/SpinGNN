@@ -43,11 +43,16 @@ def codegen_strided_tensor_product_forward(
     # check the instructions
     assert specialized_code
 
-    #print(irreps_in1, irreps_in2, irreps_out)
-    #print(instructions[0].connection_mode)
-    #print(instructions[0].has_weight)
-    #print(sparse_mode)
-    #print(shared_weights)
+    print("Irreps")
+    print(irreps_in1, irreps_in2, irreps_out)
+    print("Connection mode")
+    print(instructions[0].connection_mode)
+    print("Has weight")
+    print(instructions[0].has_weight)
+    print("Sparce mode")
+    print(sparse_mode)
+    print("Shared weights")
+    print(shared_weights)
     
     connection_mode = instructions[0].connection_mode
     if not all(ins.connection_mode == connection_mode for ins in instructions):
@@ -169,7 +174,9 @@ def codegen_strided_tensor_product_forward(
                 layout_in1.base_dim,
             ),
         )
-
+    
+    print("Is ij diagonal")
+    print(w3j_is_ij_diagonal)
     # TODO: support use of sparse w3j
     if sparse_mode is None:
         # in dense, must shape it for einsum:
