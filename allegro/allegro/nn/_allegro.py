@@ -153,10 +153,6 @@ class Allegro_Module(GraphModuleMixin, torch.nn.Module):
                 # Add parity irreps
                 ir_out = []
                 
-                print("env_embed_irreps")
-                print(env_embed_irreps)
-                print("Include parity")
-                print(self.nonscalars_include_parity)
                 for (mul, ir) in env_embed_irreps:
                     if self.nonscalars_include_parity:
                         # add both parity options
@@ -167,7 +163,7 @@ class Allegro_Module(GraphModuleMixin, torch.nn.Module):
                         ir_out.append((1, ir))
 
                 ir_out = o3.Irreps(ir_out)
-
+            
             if layer_idx == self.num_layers - 1:
                 # ^ means we're doing the last layer
                 # No more TPs follow this, so only need scalars
@@ -185,13 +181,16 @@ class Allegro_Module(GraphModuleMixin, torch.nn.Module):
             # the argument to the next tensor product is the output of this one
             arg_irreps = ir_out
             tps_irreps.append(ir_out)
+            
         # - end build irreps -
 
         # == Remove unneeded paths ==
         out_irreps = tps_irreps[-1]
+        
         new_tps_irreps = [out_irreps]
         for arg_irreps in reversed(tps_irreps[:-1]):
             new_arg_irreps = []
+            
             for mul, arg_ir in arg_irreps:
                 for _, env_ir in env_embed_irreps:
                     if any(i in out_irreps for i in arg_ir * env_ir):
@@ -243,6 +242,10 @@ class Allegro_Module(GraphModuleMixin, torch.nn.Module):
             instr = []
             n_scalar_outs: int = 0
             full_out_irreps = []
+  
+            
+            
+            
             for i_out, (_, ir_out) in enumerate(out_irreps):
                 for i_1, (_, ir_1) in enumerate(arg_irreps):
                     for i_2, (_, ir_2) in enumerate(env_embed_irreps):
@@ -253,8 +256,6 @@ class Allegro_Module(GraphModuleMixin, torch.nn.Module):
                             full_out_irreps.append((env_embed_multiplicity, ir_out))
                             tmp_i_out += 1
                             
-            print("Instructions")
-            print(instr)
             full_out_irreps = o3.Irreps(full_out_irreps)
             self._n_scalar_outs.append(n_scalar_outs)
             assert all(ir == SCALAR for _, ir in full_out_irreps[:n_scalar_outs])

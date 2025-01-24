@@ -57,7 +57,7 @@ l_max: 2
 parity: o3_full  
 
 # number of tensor product layers, 1-3 usually best, more is more accurate but slower
-num_layers: 2
+num_layers: 4
 
 # number of features, more is more accurate but slower, 1, 4, 8, 16, 64, 128 are good options to try depending on data set
 env_embed_multiplicity: 64

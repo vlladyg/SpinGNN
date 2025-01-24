@@ -107,8 +107,8 @@ class ETN_Module(nn.Module, GraphModuleMixin):
                 for l2 in range(self.lmax + 1):
                     for l3, slice in enumerate(slices):
                         if tri_ineq(l1, l2, l3):
-                            #T_3 = self.w3j_big[l1][l2][l3][..., None, None, None] * self.cores3[i][(l1, l2, l3)][None, None, None, ...]
-                            T_2_tmp[l1][l2] += torch.einsum('abc,ijk,Nck->Nabij', self.w3j_big[l1][l2][l3], self.cores3[i][(l1, l2, l3)], u_out[:, slice, :])
+                            T_3 = self.w3j_big[l1][l2][l3][..., None, None, None] * self.cores3[i][(l1, l2, l3)][None, None, None, ...]
+                            T_2_tmp[l1][l2] += torch.einsum('abcijk,Nck->Nabij', T_3, u_out[:, slice, :])
             
             
             # Second contraction with F vector

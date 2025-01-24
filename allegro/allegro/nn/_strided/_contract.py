@@ -42,17 +42,6 @@ def codegen_strided_tensor_product_forward(
 
     # check the instructions
     assert specialized_code
-
-    print("Irreps")
-    print(irreps_in1, irreps_in2, irreps_out)
-    print("Connection mode")
-    print(instructions[0].connection_mode)
-    print("Has weight")
-    print(instructions[0].has_weight)
-    print("Sparce mode")
-    print(sparse_mode)
-    print("Shared weights")
-    print(shared_weights)
     
     connection_mode = instructions[0].connection_mode
     if not all(ins.connection_mode == connection_mode for ins in instructions):
