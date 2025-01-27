@@ -8,6 +8,7 @@ from ._fc import ScalarMLP, ScalarMLPFunction
 from ._norm_basis import NormalizedBasis
 from ._edge_features_F import EdgeFeatures_F
 from ._etn import ETN_Module
+from ._etn_opt import ETN_Module_opt
 
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     ScalarMLPFunction,
     NormalizedBasis,
     EdgeFeatures_F,
-    ETN_Module
+    ETN_Module,
+    ETN_Module_opt
 ]
