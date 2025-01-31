@@ -46,7 +46,7 @@ BesselBasis_trainable: true
 
 # p-parameter in envelope function, as proposed in Klicpera, J. et al., arXiv:2003.03123 
 # sets it BOTH for the RadialBasisProjection AND the Allegro_Module
-PolynomialCutoff_p: 6  
+PolynomialCutoff_p: 5  
 
 # symmetry
 # maximum order l to use in spherical harmonics embedding, 1 is basedline (fast), 2 is more accurate, but slower, 3 highly accurate but slow
@@ -152,7 +152,7 @@ n_train: 4983
 n_val: 546
 
 # batch size, we found it important to keep this small for most applications including forces (1-5); for energy-only training, higher batch sizes work better
-batch_size: 5
+batch_size: 1
 
 # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead
 max_epochs: 1000000

@@ -147,10 +147,12 @@ class ETN_Module_opt(nn.Module, GraphModuleMixin):
         self.w3j_shape = (num_paths, ) + kij_shape
         
         # third order free parameters
-        self.cores3 = [torch.nn.Parameter(torch.Tensor(N_rank_ett[r], self.Nc, N_rank_ett[r+1], num_paths)) for r in range(d - 2)] 
+        self.cores3 = [torch.nn.Parameter(torch.Tensor(N_rank_ett[r], self.Nc, N_rank_ett[r+1], num_paths)).to(w3j.device) for r in range(d - 2)] 
         
         self.reset_parameters()
 
+
+        print(w3j.device)
         # Register layers
         self.tps = [Contracter_ETN(base_in1, 
                                    N_rank_ett[r], 
@@ -159,6 +161,8 @@ class ETN_Module_opt(nn.Module, GraphModuleMixin):
                                    base_out, 
                                    N_rank_ett[r+1], 
                                    num_paths) for r in range(self.d - 2)]
+
+        
         
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
         
@@ -185,12 +189,12 @@ class ETN_Module_opt(nn.Module, GraphModuleMixin):
         # First transform using second order tensors
         for i, slice in enumerate(slices):
             u_out[:, slice, :] = torch.einsum('ij,Nmj->Nmi', self.core2_d[i], F[:, slice, :])
-        
+
         # Series third order tensors
         for i in range(self.d - 2 - 1, -1, -1):
 
             # big contruction
-            u_out = self.tps[i](u_out, F, w3j_dense, self.cores3[i])
+            u_out = self.tps[i](u_out, F, w3j_dense, self.cores3[i].to(F.device))
 
         # Last transform using second order tensor
         for i, slice in enumerate(slices):
@@ -207,5 +211,5 @@ class ETN_Module_opt(nn.Module, GraphModuleMixin):
         torch.nn.init.kaiming_uniform_(self.core2_1, a=math.sqrt(3))
         torch.nn.init.kaiming_uniform_(self.core2_d, a=math.sqrt(3))
         
-        for core in self.cores3:
-            torch.nn.init.kaiming_uniform_(core, a=math.sqrt(3))
+        for i in range(len(self.cores3)):
+            torch.nn.init.kaiming_uniform_(self.cores3[i], a=math.sqrt(3))
