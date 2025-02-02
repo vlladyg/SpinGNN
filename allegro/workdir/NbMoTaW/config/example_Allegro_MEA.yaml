@@ -10,7 +10,7 @@
 # run_name contains logfiles and saved models
 # process contains processed data sets
 # if 'root'/'run_name' exists, 'root'/'run_name'_'year'-'month'-'day'-'hour'-'min'-'s' will be used instead.
-root: results/MEA_Allegro
+root: results/MEA
 run_name: example
 
 # model initialization seed
@@ -28,7 +28,7 @@ default_dtype: float32
 # -- network --
 # tell nequip which modules to build
 model_builders:
- - allegro.model.ETN_opt
+ - allegro.model.Allegro
  # the typical model builders from `nequip` can still be used:
  - PerSpeciesRescale
  - ParaStressForceOutput
@@ -158,10 +158,10 @@ n_train: 5000
 n_val: 500
 
 # batch size, we found it important to keep this small for most applications including forces (1-5); for energy-only training, higher batch sizes work better
-batch_size: 10
+batch_size: 1
 
 # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead
-max_epochs: 100
+max_epochs: 5
 
 # learning rate, we found values between 0.002 and 0.0005 to work best - this is often one of the most important hyperparameters to tune
 learning_rate: 0.001

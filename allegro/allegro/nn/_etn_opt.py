@@ -202,7 +202,7 @@ class ETN_Module_opt(nn.Module, GraphModuleMixin):
         
         
         # Reduction to scalar
-        data[self.out_field] = ( data[_keys.NODE_FEATURES_ETN] * F ).sum(dim = (-2, -1))
+        data[self.out_field] = (( data[_keys.NODE_FEATURES_ETN] * F ).sum(dim = (-2, -1) )).unsqueeze(-1)
         
 
         return data
