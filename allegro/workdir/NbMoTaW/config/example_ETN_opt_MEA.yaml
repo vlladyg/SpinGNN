@@ -28,7 +28,7 @@ default_dtype: float32
 # -- network --
 # tell nequip which modules to build
 model_builders:
- - allegro.model.ETN_opt
+ - allegro.model.Allegro
  # the typical model builders from `nequip` can still be used:
  - PerSpeciesRescale
  - ParaStressForceOutput
@@ -36,6 +36,12 @@ model_builders:
 
 # radial cutoff in length units
 r_max: 5.0
+
+# ETN paramters
+Nc: 10
+d: 4
+N_rank_spec: 4
+N_rank_ett: [4, 4, 4]
 
 # average number of neighbors in an environment is used to normalize the sum, auto precomputed it automitcally 
 avg_num_neighbors: auto
@@ -146,16 +152,16 @@ verbose: debug
 
 # training
 # number of training samples to use
-n_train: 4983
+n_train: 5000
 
 # number of validation samples to use
-n_val: 546
+n_val: 500
 
 # batch size, we found it important to keep this small for most applications including forces (1-5); for energy-only training, higher batch sizes work better
 batch_size: 1
 
 # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead
-max_epochs: 1000000
+max_epochs: 5
 
 # learning rate, we found values between 0.002 and 0.0005 to work best - this is often one of the most important hyperparameters to tune
 learning_rate: 0.001
@@ -199,6 +205,18 @@ optimizer_params:
   - 0.999
   eps: 1.0e-08
   weight_decay: 0.
+
+
+metrics_components:
+  - - forces                               # key 
+    - mae                                  # "rmse" or "mae"
+  - - forces
+    - rmse
+  - - total_energy
+    - mae    
+  - - total_energy
+    - mae
+    - PerAtom: True                        # if true, energy is normalized by the number of atoms
 
 # lr scheduler, drop lr if no improvement for 50 epochs
 # on-plateau, reduce lr by factory of lr_scheduler_factor if metrics_key hasn't improved for lr_scheduler_patience epoch
