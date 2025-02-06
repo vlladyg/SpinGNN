@@ -83,7 +83,7 @@ def SpinGNN(config, initialize: bool, dataset: Optional[AtomicDataset] = None):
         "spharm": SphericalHarmonicEdgeAttrs,
         # The HEGNN allegro model:
         "allegro_HEGNN": (
-            Allegro_Module_HEGNN,
+            Allegro_Module,
             dict(
                 field=AtomicDataDict.EDGE_ATTRS_KEY,  # initial input is the edge SH
                 edge_invariant_field=AtomicDataDict.EDGE_EMBEDDING_KEY,
