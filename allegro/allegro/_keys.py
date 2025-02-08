@@ -11,7 +11,7 @@ from nequip.data import register_fields
 
 # [n_edge, 1]: define edge atomic type Zij as Zi * num_types + Zj
 EDGE_TYPE_KEY: Final[str] = "edge_types"
-
+EDGE_SPIN: Final[str] = "edge_spin"
 EDGE_ENERGY: Final[str] = "edge_energy"
 EDGE_FEATURES: Final[str] = "edge_features"
 EDGE_FEATURES_MSENN_J: Final[str] = "edge_features_MSENN_J"
@@ -27,7 +27,6 @@ PER_ATOM_ENERGY_BQ: Final[str] = "atomic_energy_BQ"
 PER_ATOM_ENERGY_J: Final[str] = "atomic_energy_J"
 PER_ATOM_ENERGY_A: Final[str] = "atomic_energy_A"
 PER_ATOM_ENERGY_TENN: Final[str] = "atomic_energy_TENN"
-PER_ATOM_SPIN_KEY: Final[str] = "atomic_magmoms"  
 
     
 NODE_FEATURES_F: Final[str] = "node_features_F"
@@ -59,6 +58,6 @@ register_fields(edge_fields=[EDGE_TYPE_KEY, EDGE_FEATURES_F, EDGE_ENERGY, EDGE_F
                              EDGE_FEATURES_MSENN_J, EDGE_FEATURES_MSENN_A,
                              EDGE_ENERGY_J, EDGE_ENERGY_A,
                              EDGE_ENERGY_TENN])
-register_fields(graph_fields=[PER_ATOM_SPIN_KEY, PER_ATOM_ENERGY_HEGNN, PER_ATOM_ENERGY_SEGNN,
+register_fields(graph_fields=[PER_ATOM_ENERGY_HEGNN, PER_ATOM_ENERGY_SEGNN,
                               PER_ATOM_ENERGY_BQ, PER_ATOM_ENERGY_J, PER_ATOM_ENERGY_A,
                               PER_ATOM_ENERGY_TENN])

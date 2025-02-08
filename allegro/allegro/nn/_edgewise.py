@@ -307,7 +307,7 @@ class EdgewiseSpinSum(GraphModuleMixin, torch.nn.Module):
         self._init_irreps(
             irreps_in=irreps_in,
             my_irreps_in={_keys.EDGE_SPIN: "0e"},
-            irreps_out={_keys.PER_ATOM_SPIN_KEY: "0e"},
+            irreps_out={AtomicDataDict.SPIN_KEY: "0e"},
         )
 
         self._factor = None
@@ -339,7 +339,7 @@ class EdgewiseSpinSum(GraphModuleMixin, torch.nn.Module):
         if factor is not None:
             atom_spin = atom_spin * factor
 
-        data[_keys.PER_ATOM_SPIN_KEY] = atom_spin
+        data[AtomicDataDict.SPIN_KEY] = atom_spin
 
         return data
     

@@ -137,7 +137,7 @@ def SpinGNN(config, initialize: bool, dataset: Optional[AtomicDataset] = None):
         # Sum SEGNN energy sum
         "edge_eng_sum_SEGNN": EdgewiseEnergySumSEGNN,
         # Sum spins -> per-atom spins
-        "edge_eng_spin": EdgewiseSpinSum,
+        "atomic_spin": EdgewiseSpinSum,
         
         # Sum system energy:
         "total_energy_sum": (
