@@ -591,12 +591,18 @@ class ParaStressSpinForceOutput(GraphModuleMixin, torch.nn.Module):
         data = AtomicDataDict.with_edge_vectors(data, with_lengths=False)
         data[AtomicDataDict.EDGE_VECTORS_KEY].requires_grad_(True)
 
+        spin = data[AtomicDataDict.SPIN_KEY]
+        spin.requires_grad_(True)
+        data[AtomicDataDict.SPIN_KEY] = spin
+        
         # Call model and get gradients
         data = self.func(data)
 
+        
+        
         grads = torch.autograd.grad(
             [data[AtomicDataDict.TOTAL_ENERGY_KEY].sum()],
-            [pos, data[AtomicDataDict.EDGE_VECTORS_KEY], data[AtomicDataDict.NODE_SPIN]],
+            [pos, data[AtomicDataDict.EDGE_VECTORS_KEY], spin],
             create_graph=self.training,  # needed to allow gradients of this output during training
         )
 
@@ -672,5 +678,6 @@ class ParaStressSpinForceOutput(GraphModuleMixin, torch.nn.Module):
         if not did_pos_req_grad:
             # don't give later modules one that does
             pos.requires_grad_(False)
-
+            spin.requires_grad_(False)
+            
         return data

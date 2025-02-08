@@ -27,8 +27,9 @@ PER_ATOM_ENERGY_BQ: Final[str] = "atomic_energy_BQ"
 PER_ATOM_ENERGY_J: Final[str] = "atomic_energy_J"
 PER_ATOM_ENERGY_A: Final[str] = "atomic_energy_A"
 PER_ATOM_ENERGY_TENN: Final[str] = "atomic_energy_TENN"
-PER_ATOM_SPIN_KEY: Final[str] = "atomic_spin"  
+PER_ATOM_SPIN_KEY: Final[str] = "atomic_magmoms"  
 
+    
 NODE_FEATURES_F: Final[str] = "node_features_F"
 NODE_FEATURES_ETN: Final[str] = "node_features_ETN"    
     

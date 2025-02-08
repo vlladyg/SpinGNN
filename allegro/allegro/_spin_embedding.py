@@ -47,14 +47,15 @@ def with_edge_spin_length(data: Type, with_distance: bool = True) -> Type:
         Tensor [n_nodes, 1] edge nodes if with distance = False
     """
     # Build node spin norms
+    
     if not _keys.NODE_SPIN_LENGTH in data:
-        data[_keys.NODE_SPIN_LENGTH] = torch.linalg.norm(data[AtomicDataDict.NODE_SPIN], dim=-1)
+        data[_keys.NODE_SPIN_LENGTH] = torch.linalg.norm(data[AtomicDataDict.SPIN_KEY], dim=-1)
         
 
     # Build spin distance
     if with_distance and _keys.EDGE_SPIN_DISTANCE not in data:
         edge_index = data[AtomicDataDict.EDGE_INDEX_KEY]
-        unit_spin = data[AtomicDataDict.NODE_SPIN]/data[_keys.NODE_SPIN_LENGTH][:, None]
+        unit_spin = data[AtomicDataDict.SPIN_KEY]/data[_keys.NODE_SPIN_LENGTH][:, None]
         data[_keys.NODE_SPIN_VEC] = unit_spin
         
         
@@ -121,6 +122,9 @@ class SphericalHarmonicEdgeAttrsTENN(GraphModuleMixin, torch.nn.Module):
         super().__init__()
         self.out_field = out_field
 
+        # Should only be applied to noncoliear setting
+        assert data[AtomicDataDict.SPIN_KEY].shape[-1] == 3 and len(data[AtomicDataDict.SPIN_KEY].shape) > 1
+        
         if isinstance(irreps_edge_sh_TENN, int):
             self.irreps_edge_sh_TENN = o3.Irreps.spherical_harmonics(irreps_edge_sh_TENN)
         else:

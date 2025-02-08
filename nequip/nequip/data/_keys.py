@@ -13,8 +13,8 @@ else:
 # == Define allowed keys as constants ==
 # The positions of the atoms in the system
 POSITIONS_KEY: Final[str] = "pos"
-# The spin of the atoms in the system
-NODE_SPIN: Final[str] = "node_spin"
+# Atomic spin of the atoms in the system
+SPIN_KEY: Final[str] = "magmoms"
 # The [2, n_edge] index tensor giving center -> neighbor relations
 EDGE_INDEX_KEY: Final[str] = "edge_index"
 # A [n_edge, 3] tensor of how many periodic cells each edge crosses in each cell vector

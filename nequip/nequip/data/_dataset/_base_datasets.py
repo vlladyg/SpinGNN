@@ -152,6 +152,9 @@ class AtomicInMemoryDataset(AtomicDataset):
         super().__init__(root=root, type_mapper=type_mapper)
         if self.data is None:
             self.data, include_frames = torch.load(self.processed_paths[0])
+            
+            if 'magmoms' in self.data.keys and len(self.data['magmoms'].shape) == 1:
+                self.data['magmoms'] = self.data['magmoms'].unsqueeze(-1)
             if not np.all(include_frames == self.include_frames):
                 raise ValueError(
                     f"the include_frames is changed. "

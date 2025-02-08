@@ -35,7 +35,7 @@ _DEFAULT_LONG_FIELDS: Set[str] = {
 }
 _DEFAULT_NODE_FIELDS: Set[str] = {
     AtomicDataDict.POSITIONS_KEY,
-    AtomicDataDict.NODE_SPIN,
+    AtomicDataDict.SPIN_KEY,
     AtomicDataDict.NODE_FEATURES_KEY,
     AtomicDataDict.NODE_ATTRS_KEY,
     AtomicDataDict.ATOMIC_NUMBERS_KEY,
@@ -134,6 +134,10 @@ def _process_dict(kwargs, ignore_fields=[]):
         if k in ignore_fields:
             continue
 
+        #if k == AtomicDataDict.SPIN_KEY and len(add_fields[AtomicDataDict.SPIN_KEY].shape) == 1:
+        #    print(k)
+        #    kwargs[AtomicDataDict.SPIN_KEY] = kwargs[AtomicDataDict.SPIN_KEY].unsqueeze(-1)
+        
         if k in _LONG_FIELDS:
             # Any property used as an index must be long (or byte or bool, but those are not relevant for atomic scale systems)
             # int32 would pass later checks, but is actually disallowed by torch
@@ -281,6 +285,7 @@ class AtomicData(Data):
             for field, irreps in self.__irreps__:
                 if irreps is not None:
                     assert self[field].shape[-1] == irreps.dim
+                    
 
     @classmethod
     def from_points(
@@ -439,7 +444,8 @@ class AtomicData(Data):
                 raise NotImplementedError(
                     f"`from_ase` does not support calculator {atoms.calc}"
                 )
-
+        
+            
         add_fields[AtomicDataDict.ATOMIC_NUMBERS_KEY] = atoms.get_atomic_numbers()
 
         # cell and pbc in kwargs can override the ones stored in atoms
