@@ -141,7 +141,7 @@ class EdgewiseEnergySumJ(GraphModuleMixin, torch.nn.Module):
 
         species = data[AtomicDataDict.ATOM_TYPE_KEY].squeeze(-1)
         
-        node_spin = data[AtomicDataDict.NODE_SPIN]
+        node_spin = data[AtomicDataDict.SPIN_KEY]
         
         J_mtx = torch.einsum('ik,klm->ilm', data[_keys.EDGE_FEATURES_MSENN_J], matrix_terms_J)
         
@@ -190,7 +190,7 @@ class EdgewiseEnergySumA(GraphModuleMixin, torch.nn.Module):
 
         species = data[AtomicDataDict.ATOM_TYPE_KEY].squeeze(-1)
         
-        node_spin= data[AtomicDataDict.NODE_SPIN]
+        node_spin= data[AtomicDataDict.SPIN_KEY]
         
         
         A_mtx = torch.einsum('ik,klm->ilm', data[_keys.EDGE_FEATURES_MSENN_A].squeeze(-2), matrix_terms_A)

@@ -123,7 +123,7 @@ class SphericalHarmonicEdgeAttrsTENN(GraphModuleMixin, torch.nn.Module):
         self.out_field = out_field
 
         # Should only be applied to noncoliear setting
-        assert data[AtomicDataDict.SPIN_KEY].shape[-1] == 3 and len(data[AtomicDataDict.SPIN_KEY].shape) > 1
+        #assert data[AtomicDataDict.SPIN_KEY].shape[-1] == 3 and len(data[AtomicDataDict.SPIN_KEY].shape) > 1
         
         if isinstance(irreps_edge_sh_TENN, int):
             self.irreps_edge_sh_TENN = o3.Irreps.spherical_harmonics(irreps_edge_sh_TENN)
