@@ -151,7 +151,7 @@ class AtomicInMemoryDataset(AtomicDataset):
         # Then pre-process the data if disk files are not found
         super().__init__(root=root, type_mapper=type_mapper)
         if self.data is None:
-            self.data, include_frames = torch.load(self.processed_paths[0])
+            self.data, include_frames = torch.load(self.processed_paths[0], weights_only = False)
             
             if 'magmoms' in self.data.keys and len(self.data['magmoms'].shape) == 1:
                 self.data['magmoms'] = self.data['magmoms'].unsqueeze(-1)

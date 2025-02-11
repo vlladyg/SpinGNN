@@ -50,7 +50,7 @@ PolynomialCutoff_p: 6
 
 # symmetry
 # maximum order l to use in spherical harmonics embedding, 1 is basedline (fast), 2 is more accurate, but slower, 3 highly accurate but slow
-l_max: 2
+l_max: 3
 
 # whether to include E(3)-symmetry / parity
 # allowed: o3_full, o3_restricted, so3
@@ -117,7 +117,7 @@ edge_eng_mlp_initialization: uniform
 
 # npz option
 dataset: ase                                                                   
-dataset_file_name: ./benchmark_data/FePd.xyz                     # path to data set file
+dataset_file_name: ./benchmark_data/FePd_full.xyz                     # path to data set file
 ase_args:
   format: extxyz
   
@@ -137,23 +137,23 @@ chemical_symbol_to_type:
 wandb: false
 
 # project name in wandb
-wandb_project: aspirin
+wandb_project: FePd
 
 # the same as python logging, e.g. warning, info, debug, error. case insensitive
 verbose: debug
 
 # training
 # number of training samples to use
-n_train: 80
+n_train: 2200
 
 # number of validation samples to use
-n_val: 20
+n_val: 300
 
 # batch size, we found it important to keep this small for most applications including forces (1-5); for energy-only training, higher batch sizes work better
-batch_size: 5
+batch_size: 10
 
 # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead
-max_epochs: 1000000
+max_epochs: 100
 
 # learning rate, we found values between 0.002 and 0.0005 to work best - this is often one of the most important hyperparameters to tune
 learning_rate: 0.001
@@ -183,6 +183,7 @@ ema_use_num_updates: true
 # in that case, 1:1 works best usually
 loss_coeffs:
   forces: 1.
+  magmoms: 1.
   total_energy:          
     - 1.
     - PerAtomMSELoss
@@ -203,6 +204,22 @@ optimizer_params:
 lr_scheduler_name: ReduceLROnPlateau
 lr_scheduler_patience: 50
 lr_scheduler_factor: 0.5
+
+
+metrics_components:
+  - - forces                               # key 
+    - mae                                  # "rmse" or "mae"
+  - - forces
+    - rmse
+  - - magmoms
+    - mae    
+  - - magmoms
+    - rmse
+  - - total_energy
+    - mae    
+  - - total_energy
+    - mae
+    - PerAtom: True                        # if true, energy is normalized by the number of atoms
 
 # early stopping if max 7 days is reached or lr drops below 1e-5 or no improvement on val loss for 100 epochs
 early_stopping_upper_bounds:
