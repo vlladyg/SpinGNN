@@ -152,7 +152,7 @@ class ETN_Module_opt(nn.Module, GraphModuleMixin):
         #self.reset_parameters()
 
 
-        print(w3j.device)
+        #print(w3j.device)
         # Register layers
         self.tps = [Contracter_ETN(base_in1, 
                                    N_rank_ett[r], 
