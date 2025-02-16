@@ -62,8 +62,8 @@ class ETN_Module_opt(nn.Module, GraphModuleMixin):
         self.lmax = lmax
         
         # Second order cores(first and last)
-        core2_1 = Parameter(torch.Tensor(lmax+1, self.Nc, N_rank_ett[0]))
-        core2_d = Parameter(torch.Tensor(lmax+1, N_rank_ett[-1], self.Nc))
+        core2_1 = Parameter(torch.empty(lmax+1, self.Nc, N_rank_ett[0]).normal_())
+        core2_d = Parameter(torch.empty(lmax+1, N_rank_ett[-1], self.Nc).normal_())
         
         
         
@@ -147,9 +147,9 @@ class ETN_Module_opt(nn.Module, GraphModuleMixin):
         self.w3j_shape = (num_paths, ) + kij_shape
         
         # third order free parameters
-        self.cores = ParameterList([core2_1] + [Parameter(torch.Tensor(N_rank_ett[r], self.Nc, N_rank_ett[r+1], num_paths)).to(w3j.device) for r in range(d - 2)] + [core2_d]) 
+        self.cores = ParameterList([core2_1] + [Parameter(torch.empty(N_rank_ett[r], self.Nc, N_rank_ett[r+1], num_paths).normal_()) for r in range(d - 2)] + [core2_d]) 
         
-        self.reset_parameters()
+        #self.reset_parameters()
 
 
         print(w3j.device)
@@ -206,8 +206,3 @@ class ETN_Module_opt(nn.Module, GraphModuleMixin):
         
 
         return data
-    
-    def reset_parameters(self):
-        
-        for i in range(len(self.cores)):
-            torch.nn.init.kaiming_uniform_(self.cores[i], a=math.sqrt(3))
