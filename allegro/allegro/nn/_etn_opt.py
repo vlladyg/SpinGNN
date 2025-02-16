@@ -194,7 +194,7 @@ class ETN_Module_opt(nn.Module, GraphModuleMixin):
         for i in range(self.d - 2, 0, -1):
 
             # big contruction
-            u_out = self.tps[i-1](u_out, F, w3j_dense, self.cores[i].to(F.device))
+            u_out = self.tps[i-1](u_out, F, w3j_dense, self.cores[i])
 
         # Last transform using second order tensor
         for i, slice in enumerate(slices):
