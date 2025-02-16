@@ -24,6 +24,8 @@ append: true
 
 # type of float to use, e.g. float32 and float64
 default_dtype: float32
+model_dtype: float32
+
 
 # -- network --
 # tell nequip which modules to build
