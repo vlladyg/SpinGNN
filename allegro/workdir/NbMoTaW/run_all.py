@@ -1,6 +1,9 @@
 # reference example
 from nequip.data import dataset_from_config
 from nequip.utils import Config
+from nequip.train.trainer import Trainer
+from e3nn import o3
+import sys
 #from nequip.utils.misc import get_default_device_name
 #from nequip.utils.config import _GLOBAL_ALL_ASKED_FOR_KEYS
 
@@ -45,13 +48,43 @@ default_config = dict(
     # TODO: default for ROCm?
     _jit_fuser="fuser1",
 )
-os.environ['NEQUIP_NUM_TASKS'] = '16'
+os.environ['NEQUIP_NUM_TASKS'] = '1'
+
+config = Config.from_file('./config/example_ETN_opt_MEA.yaml', defaults=default_config)
+
+
 
 def run_ind(ind):
-    config = Config.from_file('./config/example_ETN_opt_MEA.yaml', defaults=default_config)
     
-    config['root'] = 'results/MEA_Allegro_1'
-    config['seed'] = 123456 + 1
+    config['root'] = f'results/MEA_Allegro_{ind}'
+    config['seed'] = 1234560 + ind
+   
     dataset = dataset_from_config(config, prefix="dataset")
+    validation_dataset = None    
+
+    # Trainer
+    trainer = Trainer(model=None, **Config.as_dict(config))
     
-    validation_dataset = None
+    # what is this
+    # to update wandb data?
+    config.update(trainer.params)
+    
+    # = Train/test split =
+    trainer.set_dataset(dataset, validation_dataset)
+    
+    
+    # = Build model =
+    final_model = model_from_config(
+        config=config, initialize=True, dataset=trainer.dataset_train)
+
+
+    trainer.model = final_model
+
+    trainer.train()
+
+
+if __name__ == """__main__""":
+    num_model = int(sys.argv[1])
+    
+    for ind in range(num_model):
+        run_ind(ind)
