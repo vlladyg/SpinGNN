@@ -66,8 +66,8 @@ class ETN_ALS_Module_opt(nn.Module, GraphModuleMixin):
         core2_d = Parameter(torch.empty(lmax+1, N_rank_ett[-1], self.Nc, 1).normal_())
 
 
-        instrusctions_1 = [(0, l, l) for l in range(lmax + 1)]
-        instrusctions_d = [(l, l, 0) for l in range(lmax + 1)]
+        instructions_1 = [(0, l, l) for l in range(lmax + 1)]
+        instructions_d = [(l, l, 0) for l in range(lmax + 1)]
         
         
         # Third order cores
@@ -90,7 +90,11 @@ class ETN_ALS_Module_opt(nn.Module, GraphModuleMixin):
 
                         
         self.instructions = instructions
-        self.instructions_list = [instrusctions_1] + [instructions for _ in range(d - 2)] + [instrusctions_d]
+        
+        self.register_buffer("instructions_list_0", torch.as_tensor(instructions_1, dtype = torch.long))
+        for i in range(1, d - 1):
+            self.register_buffer(f"instructions_list_{i}", torch.as_tensor(instructions, dtype = torch.long))
+        self.register_buffer(f"instructions_list_{d - 1}", torch.as_tensor(instructions_d, dtype = torch.long))
         
         # building large w3j
         w3j_values = []
