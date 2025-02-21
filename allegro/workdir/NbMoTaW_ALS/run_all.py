@@ -4,7 +4,8 @@ from nequip.utils import Config
 from nequip.train.trainer import Trainer
 from e3nn import o3
 import sys
-from nequip.utils import finish_all_writes
+from nequip.utils import finish_all_writes, atomic_write_group, finish_all_writes
+from time import perf_counter
 #from nequip.utils.misc import get_default_device_name
 #from nequip.utils.config import _GLOBAL_ALL_ASKED_FOR_KEYS
 
@@ -82,6 +83,9 @@ def run_ind(ind):
     trainer.model = final_model
 
     #trainer.train()
+
+    # Init the trainer
+    init_trainer(trainer)
     
     # Check if epoch per sweep has a correct value
     assert (config['max_epochs'] % config['epochs_per_sweep'] == 0)
@@ -102,6 +106,27 @@ def run_ind(ind):
     finish_all_writes()
     
 
+def init_trainer(trainer):
+    """Init the trainer"""
+    
+    if not trainer._initialized:
+        trainer.init()
+
+    for callback in trainer._init_callbacks:
+        callback(trainer)
+
+    trainer.init_log()
+    trainer.wall = perf_counter()
+    trainer.previous_cumulative_wall = trainer.cumulative_wall
+    
+    with atomic_write_group():
+        if trainer.iepoch == -1:
+            trainer.save()
+        if trainer.iepoch in [-1, 0]:
+            trainer.save_config()
+    
+    trainer.init_metrics()
+
 def run_one_sweep_cycle(trainer, config):
     
     cur_sweep = 0 
@@ -115,9 +140,10 @@ def run_one_sweep_cycle(trainer, config):
         
         if i != 0:
             trainer.model.get_submodule('model.model.func.etn.cores')[i-1].requires_grad_(False)
-        
-        trainer.epoch_step()
-        trainer.end_of_epoch_save()
+
+        for j in range(config['epochs_per_sweep']):
+            trainer.epoch_step()
+            trainer.end_of_epoch_save()
         
         cur_sweep += 1
     
@@ -126,9 +152,11 @@ def run_one_sweep_cycle(trainer, config):
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(True)
         trainer.model.get_submodule('model.model.func.etn.cores')[i+1].requires_grad_(False)
         
+        for j in range(config['epochs_per_sweep']):
+            trainer.epoch_step()
+            trainer.end_of_epoch_save()
+
         cur_sweep += 1
-        trainer.epoch_step()
-        trainer.end_of_epoch_save()
         
     return cur_sweep 
     
