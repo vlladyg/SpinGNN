@@ -4,7 +4,9 @@ from nequip.utils import Config
 from nequip.train.trainer import Trainer
 from e3nn import o3
 import sys
-from nequip.utils import finish_all_writes
+from nequip.utils import finish_all_writes, atomic_write_group, finish_all_writes
+from time import perf_counter
+from ortho import lr_orthogonal
 #from nequip.utils.misc import get_default_device_name
 #from nequip.utils.config import _GLOBAL_ALL_ASKED_FOR_KEYS
 
@@ -23,7 +25,7 @@ default_config = dict(
         "RescaleEnergyEtc",
     ],
     dataset_statistics_stride=1,
-    device='cuda:0',
+    device='cpu',
     default_dtype="float64",
     model_dtype="float32",
     allow_tf32=True,
@@ -82,6 +84,9 @@ def run_ind(ind):
     trainer.model = final_model
 
     #trainer.train()
+
+    # Init the trainer
+    init_trainer(trainer)
     
     # Check if epoch per sweep has a correct value
     assert (config['max_epochs'] % config['epochs_per_sweep'] == 0)
@@ -91,6 +96,8 @@ def run_ind(ind):
     
     cur_sweep = 0
     while cur_sweep < num_sweeps:
+        ortho_weights(trainer, config)
+        
         cur_sweep += run_one_sweep_cycle(trainer, config)
     
     for callback in trainer._final_callbacks:
@@ -102,12 +109,51 @@ def run_ind(ind):
     finish_all_writes()
     
 
-def run_one_sweep_cycle(trainer, config):
+def init_trainer(trainer):
+    """Init the trainer"""
     
-    cur_sweep = 0 
+    if not trainer._initialized:
+        trainer.init()
+
+    for callback in trainer._init_callbacks:
+        callback(trainer)
+
+    trainer.init_log()
+    trainer.wall = perf_counter()
+    trainer.previous_cumulative_wall = trainer.cumulative_wall
+    
+    with atomic_write_group():
+        if trainer.iepoch == -1:
+            trainer.save()
+        if trainer.iepoch in [-1, 0]:
+            trainer.save_config()
+    
+    trainer.init_metrics()
+
+def ortho_weights(trainer, config):
+    
     # Making all non trainable
     for i in range(config['d']):
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(False)
+
+    # TODO: ask Max or check if sweep orthogonalization works better
+    # Orthogonalization
+    cores = trainer.model.get_submodule('model.model.func.etn.cores')
+    instructions = []
+    for i in range(config['d']):
+        instructions.append([tuple(el) for el in trainer.model.get_buffer(f'model.model.func.etn.instructions_list_{i}').tolist()])
+    
+    ranks = [1] + trainer.model.get_buffer(f'model.model.func.etn.N_rank_ett').tolist() + [1]
+
+    cores_new, R = lr_orthogonal(cores, ranks, instructions)
+
+    for i in range(config['d']):
+        trainer.model.get_submodule('model.model.func.etn.cores')[i] = cores_new[i]
+    
+
+def run_one_sweep_cycle(trainer, config):
+    
+    cur_sweep = 0 
     
     # Forward sweeps
     for i in range(config['d']):
@@ -115,9 +161,10 @@ def run_one_sweep_cycle(trainer, config):
         
         if i != 0:
             trainer.model.get_submodule('model.model.func.etn.cores')[i-1].requires_grad_(False)
-        
-        trainer.epoch_step()
-        trainer.end_of_epoch_save()
+
+        for j in range(config['epochs_per_sweep']):
+            trainer.epoch_step()
+            trainer.end_of_epoch_save()
         
         cur_sweep += 1
     
@@ -126,9 +173,11 @@ def run_one_sweep_cycle(trainer, config):
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(True)
         trainer.model.get_submodule('model.model.func.etn.cores')[i+1].requires_grad_(False)
         
+        for j in range(config['epochs_per_sweep']):
+            trainer.epoch_step()
+            trainer.end_of_epoch_save()
+
         cur_sweep += 1
-        trainer.epoch_step()
-        trainer.end_of_epoch_save()
         
     return cur_sweep 
     
