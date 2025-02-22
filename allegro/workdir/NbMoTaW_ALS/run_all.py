@@ -94,12 +94,17 @@ def run_ind(ind):
     num_sweeps = config['max_epochs'] // config['epochs_per_sweep']
     
     cur_sweep = 0
-    while cur_sweep < num_sweeps:
+    while not trainer.stop_cond and cur_sweep < num_sweeps:
         cur_sweep += run_one_sweep_cycle(trainer, config)
+
+    #trainer.iepoch = config['max_epochs']
+    trainer.stop_cond
     
     for callback in trainer._final_callbacks:
         callback(trainer)
 
+    
+    
     trainer.final_log()
 
     trainer.save()
@@ -144,7 +149,7 @@ def run_one_sweep_cycle(trainer, config):
         for j in range(config['epochs_per_sweep']):
             trainer.epoch_step()
             trainer.end_of_epoch_save()
-        
+            
         cur_sweep += 1
     
     # Backward sweeps   
@@ -155,7 +160,7 @@ def run_one_sweep_cycle(trainer, config):
         for j in range(config['epochs_per_sweep']):
             trainer.epoch_step()
             trainer.end_of_epoch_save()
-
+            
         cur_sweep += 1
         
     return cur_sweep 
