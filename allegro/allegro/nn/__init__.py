@@ -10,6 +10,7 @@ from ._edge_features_F import EdgeFeatures_F
 from ._etn import ETN_Module
 from ._etn_opt import ETN_Module_opt
 from ._etn_als_opt import ETN_ALS_Module_opt
+from ._etn_als_a_b_opt import ETN_ALS_A_B_Module_opt
 
 
 __all__ = [
@@ -35,5 +36,6 @@ __all__ = [
     EdgeFeatures_F,
     ETN_Module,
     ETN_Module_opt,
-    ETN_ALS_Module_opt
+    ETN_ALS_Module_opt,
+    ETN_ALS_A_B_Module_opt
 ]
