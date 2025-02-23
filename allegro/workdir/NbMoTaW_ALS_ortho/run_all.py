@@ -6,7 +6,7 @@ from e3nn import o3
 import sys
 from nequip.utils import finish_all_writes, atomic_write_group, finish_all_writes
 from time import perf_counter
-from ortho import lr_orthogonal
+from allegro import lr_orthogonal, lr_orthogonal_ind, rl_orthogonal, rl_orthogonal_ind
 #from nequip.utils.misc import get_default_device_name
 #from nequip.utils.config import _GLOBAL_ALL_ASKED_FOR_KEYS
 
@@ -25,7 +25,7 @@ default_config = dict(
         "RescaleEnergyEtc",
     ],
     dataset_statistics_stride=1,
-    device='cpu',
+    device='cuda:0',
     default_dtype="float64",
     model_dtype="float32",
     allow_tf32=True,
@@ -148,7 +148,7 @@ def ortho_weights(trainer, config):
     
     ranks = [1] + trainer.model.get_buffer(f'model.model.func.etn.N_rank_ett').tolist() + [1]
 
-    cores_new, R = lr_orthogonal(cores, ranks, instructions)
+    cores_new, R = rl_orthogonal(cores, ranks, instructions)
 
     for i in range(config['d']):
         trainer.model.get_submodule('model.model.func.etn.cores')[i] = cores_new[i]
@@ -157,30 +157,37 @@ def ortho_weights(trainer, config):
 def run_one_sweep_cycle(trainer, config):
     
     cur_sweep = 0 
-    
-    # Forward sweeps
-    for i in range(config['d']):
+
+    # Backward sweeps   
+    for i in range(config['d']-1, 0, -1):
+        # Check
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(True)
         
-        if i != 0:
-            trainer.model.get_submodule('model.model.func.etn.cores')[i-1].requires_grad_(False)
+        for j in range(config['epochs_per_sweep']):
+            trainer.epoch_step()
+            trainer.end_of_epoch_save()
+
+        # Uncheck
+        trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(False)
+        
+        cur_sweep += 1
+    
+    # Forward sweeps
+    for i in range(config['d']-1):
+        # Check
+        trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(True)
+        
 
         for j in range(config['epochs_per_sweep']):
             trainer.epoch_step()
             trainer.end_of_epoch_save()
+
+
+        # Uncheck
+        trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(False)
         
         cur_sweep += 1
     
-    # Backward sweeps   
-    for i in range(config['d']-2, -1, -1):
-        trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(True)
-        trainer.model.get_submodule('model.model.func.etn.cores')[i+1].requires_grad_(False)
-        
-        for j in range(config['epochs_per_sweep']):
-            trainer.epoch_step()
-            trainer.end_of_epoch_save()
-        
-        cur_sweep += 1
         
     return cur_sweep 
     
