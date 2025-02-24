@@ -19,9 +19,8 @@ from .. import _keys
 from ._strided import Contracter_ETN_ALS
 from .cutoffs import cosine_cutoff, polynomial_cutoff
 from e3nn.o3 import wigner_3j
-from torch.nn import Parameter, ParameterList
+from torch.nn import Parameter, ParameterList, ModuleList
 from ._edge_features_F import EdgeFeatures_FFunction
-
 
 # Triangular ineguality for path existance
 def tri_ineq(l1, l2, l3):
@@ -169,14 +168,14 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
 
 
         # Register layers F
-        self.edge_F = [EdgeFeatures_FFunction(
+        self.edge_F = ModuleList([EdgeFeatures_FFunction(
             lmax=self.lmax,
             num_types=self.num_types,
             Nc=self.Nc,
             num_basis=num_basis,
             N_rank_spec=N_rank_spec,
             irreps_edge_sh=base_in2,
-        )  for r in range(self.d)]
+        )  for r in range(self.d)])
 
         # To convert to node features
         if normalize_edge_features_f and avg_num_neighbors is not None:
