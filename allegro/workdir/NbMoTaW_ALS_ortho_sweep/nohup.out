@@ -22819,3 +22819,204 @@ training
 # Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
     206   100       0.0467       0.0459     0.000857       0.0925        0.184        0.388       0.0195
     206   200         0.13        0.129     0.000521        0.191        0.309        0.514       0.0123
+    206   300       0.0992       0.0987     0.000443         0.15         0.27        0.444       0.0127
+    206   400       0.0152       0.0125      0.00268       0.0661        0.096         1.22       0.0331
+    206   500       0.0427       0.0313       0.0114       0.0729        0.152        0.888       0.0428
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    206   100       0.0276       0.0274     0.000199       0.0928        0.142        0.218      0.00961
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train             206 19024.585 0.000125       0.0347      0.00223       0.0369        0.088        0.169        0.525       0.0199
+! Validation        206 19024.585 0.000125       0.0311     0.000757       0.0318       0.0918        0.171        0.373       0.0144
+Wall time: 19024.585428612016
+Saved trainer to results/MEA_Allegro_2/example/trainer.pth
+Saved last model to to results/MEA_Allegro_2/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    207   100       0.0451       0.0413      0.00382       0.0893        0.174         1.12       0.0353
+    207   200      0.00613      0.00563     0.000501       0.0397       0.0644        0.368       0.0152
+    207   300      0.00143      0.00115     0.000283       0.0162       0.0291        0.103       0.0113
+    207   400       0.0137       0.0122      0.00148        0.062       0.0949        0.697       0.0186
+    207   500      0.00319      0.00303     0.000166       0.0303       0.0472        0.188      0.00958
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    207   100       0.0264       0.0262     0.000136       0.0907        0.139        0.195      0.00831
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train             207 19102.789 0.000125       0.0334      0.00201       0.0354       0.0862        0.166        0.498       0.0188
+! Validation        207 19102.789 0.000125         0.03      0.00067       0.0306         0.09        0.168        0.352       0.0132
+Wall time: 19102.78949189902
+Saved trainer to results/MEA_Allegro_2/example/trainer.pth
+Saved last model to to results/MEA_Allegro_2/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    208   100       0.0145        0.014     0.000495       0.0576        0.102        0.238       0.0165
+    208   200      0.00278      0.00254      0.00024       0.0241       0.0433        0.163       0.0102
+    208   300      0.00429      0.00418     0.000113       0.0357       0.0555        0.213      0.00861
+    208   400       0.0115       0.0109     0.000539       0.0497       0.0897        0.247       0.0145
+    208   500      0.00866      0.00686       0.0018        0.032       0.0711        0.434       0.0262
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    208   100       0.0249       0.0248     0.000117       0.0881        0.135        0.169      0.00753
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train             208 19271.598 0.000125       0.0329      0.00183       0.0347       0.0844        0.164        0.482        0.018
+! Validation        208 19271.598 0.000125       0.0291     0.000631       0.0297       0.0884        0.165        0.333       0.0127
+Wall time: 19271.598224231973
+Saved trainer to results/MEA_Allegro_2/example/trainer.pth
+Saved last model to to results/MEA_Allegro_2/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    209   100      0.00367      0.00353     0.000136       0.0294        0.051        0.166      0.00779
+    209   200       0.0427       0.0423     0.000357       0.0964        0.177        0.188       0.0126
+    209   300        0.114        0.111      0.00307        0.175        0.286        0.601       0.0348
+    209   400       0.0559       0.0545      0.00146        0.117          0.2         1.02       0.0246
+    209   500      0.00819      0.00728     0.000902       0.0536       0.0733        0.526       0.0179
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    209   100        0.024       0.0239       0.0001       0.0861        0.133        0.147      0.00647
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train             209 19350.287 0.000125       0.0315      0.00173       0.0333       0.0834        0.162        0.483       0.0177
+! Validation        209 19350.287 0.000125       0.0283     0.000579       0.0289        0.087        0.163        0.314       0.0118
+Wall time: 19350.287606221973
+Saved trainer to results/MEA_Allegro_2/example/trainer.pth
+Saved last model to to results/MEA_Allegro_2/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    210   100          0.2       0.0677        0.132        0.138        0.223          7.1        0.263
+    210   200        0.503        0.276        0.227         0.26        0.451         5.84         0.26
+    210   300        0.141       0.0566       0.0847        0.125        0.204         3.49        0.151
+    210   400        0.054       0.0449      0.00904        0.127        0.182        0.511       0.0525
+    210   500      0.00817      0.00767     0.000503       0.0368       0.0752        0.234       0.0146
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    210   100        0.171        0.157       0.0139        0.213        0.341         3.26       0.0918
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train             210 19513.518 0.000125        0.262         0.36        0.621        0.247         0.46         6.64        0.276
+! Validation        210 19513.518 0.000125        0.127        0.011        0.138          0.2        0.342         1.61       0.0685
+Wall time: 19513.518464045017
+Saved trainer to results/MEA_Allegro_2/example/trainer.pth
+Saved last model to to results/MEA_Allegro_2/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    211   100       0.0353       0.0334      0.00194       0.0855        0.157        0.604       0.0305
+    211   200       0.0403       0.0386      0.00172        0.109        0.169        0.485        0.029
+    211   300       0.0691       0.0656      0.00351        0.129         0.22         1.12       0.0471
+    211   400        0.164        0.161       0.0032        0.186        0.344         1.14        0.039
+    211   500       0.0564       0.0555     0.000914        0.129        0.202        0.508       0.0225
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    211   100       0.0938       0.0926      0.00113        0.166        0.261        0.732       0.0247
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train             211 19591.796 0.000125       0.0937      0.00772        0.101        0.155        0.279         1.04       0.0386
+! Validation        211 19591.796 0.000125       0.0804      0.00281       0.0832        0.155        0.275        0.846       0.0311
+Wall time: 19591.79631380498
+Saved trainer to results/MEA_Allegro_2/example/trainer.pth
+Saved last model to to results/MEA_Allegro_2/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    212   100         0.11        0.102       0.0086        0.162        0.274         3.08       0.0666
+    212   200       0.0538       0.0526      0.00125        0.126        0.197        0.809       0.0249
+    212   300        0.148        0.145      0.00258         0.15        0.327        0.756       0.0331
+    212   400        0.112        0.104      0.00843        0.154        0.277         1.91       0.0516
+    212   500        0.178        0.176      0.00148        0.212        0.361         1.06       0.0253
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    212   100       0.0726       0.0714      0.00117        0.147        0.229        0.633       0.0248
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train             212 19752.307 0.000125        0.069      0.00678       0.0758        0.132        0.241        0.959       0.0365
+! Validation        212 19752.307 0.000125       0.0616      0.00264       0.0643        0.135         0.24        0.747       0.0292
+Wall time: 19752.30736603
+Saved trainer to results/MEA_Allegro_2/example/trainer.pth
+Saved last model to to results/MEA_Allegro_2/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    213   100       0.0144       0.0107      0.00361       0.0516        0.089        0.962       0.0332
+    213   200        0.035       0.0337      0.00132        0.112        0.158        0.739       0.0236
+    213   300       0.0965       0.0885      0.00804        0.132        0.255        0.638        0.053
+    213   400        0.108        0.105      0.00292        0.169        0.279         1.08       0.0312
+    213   500       0.0458        0.044      0.00183        0.112         0.18        0.615       0.0276
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    213   100       0.0611         0.06      0.00102        0.134         0.21        0.561       0.0237
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train             213 19832.005 0.000125       0.0559      0.00627       0.0622        0.119        0.218        0.903       0.0345
+! Validation        213 19832.005 0.000125       0.0509      0.00262       0.0535        0.123        0.219        0.711       0.0286
+Wall time: 19832.00539669802
+Saved trainer to results/MEA_Allegro_2/example/trainer.pth
+Saved last model to to results/MEA_Allegro_2/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    214   100       0.0467       0.0402      0.00655        0.115        0.172         1.67       0.0431
+    214   200       0.0121       0.0109       0.0012       0.0528       0.0896        0.297       0.0195
+    214   300        0.117        0.115       0.0016        0.171        0.291        0.792       0.0291
+    214   400       0.0724       0.0705      0.00191        0.122        0.228        0.622       0.0267
+    214   500        0.037       0.0359      0.00112       0.0848        0.163        0.414       0.0205
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    214   100       0.0523       0.0514      0.00092        0.124        0.195        0.518       0.0221
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train             214 19990.511 0.000125       0.0501      0.00571       0.0558        0.109        0.202        0.868       0.0335
+! Validation        214 19990.511 0.000125       0.0444      0.00242       0.0468        0.114        0.204        0.649       0.0263
+Wall time: 19990.51149986603
+Saved trainer to results/MEA_Allegro_2/example/trainer.pth
+Saved last model to to results/MEA_Allegro_2/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    215   100       0.0463       0.0371      0.00914        0.112        0.165         2.47       0.0649
+    215   200        0.138        0.137      0.00106        0.181        0.318         1.01       0.0251
+    215   300       0.0154        0.012       0.0033       0.0635       0.0942         1.05       0.0328
+    215   400       0.0208       0.0203     0.000503       0.0838        0.122        0.569       0.0154
+    215   500        0.107          0.1      0.00703        0.177        0.272          2.1        0.044
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    215   100        0.047       0.0462     0.000853        0.116        0.184        0.465        0.021
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train             215 20076.410 0.000125       0.0455      0.00501       0.0505        0.102        0.192        0.813       0.0312
+! Validation        215 20076.410 0.000125         0.04      0.00216       0.0422        0.107        0.194        0.604       0.0241
+Wall time: 20076.41052398499
+Saved trainer to results/MEA_Allegro_2/example/trainer.pth
+Saved last model to to results/MEA_Allegro_2/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+    216   100       0.0172       0.0156      0.00153       0.0701        0.107        0.372       0.0217
+    216   200       0.0749       0.0728      0.00211        0.145        0.232        0.988       0.0258
+    216   300      0.00122     0.000944     0.000273       0.0153       0.0264        0.208        0.013

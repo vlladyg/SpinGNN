@@ -20,7 +20,8 @@ from ._strided import Contracter_ETN_ALS
 from .cutoffs import cosine_cutoff, polynomial_cutoff
 from e3nn.o3 import wigner_3j
 from torch.nn import Parameter, ParameterList
-from ._edge_features_F import EdgeFeatures_F
+from ._edge_features_F import EdgeFeatures_FFunction
+
 
 # Triangular ineguality for path existance
 def tri_ineq(l1, l2, l3):
@@ -31,26 +32,32 @@ def tri_ineq(l1, l2, l3):
 class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
     def __init__(self,
                  d: int,
-                 N_rank_ett: List[int], 
+                 N_rank_ett: List[int],
+                 Nc: int = 10,
+                 num_types: int  = 3,
+                 num_basis: int = 8,
+                 N_rank_spec: int = 4,
+                 avg_num_neighbors: Optional[float] = None,
+                 normalize_edge_features_f: bool = True,
                  irreps_in=None,
-                 out_field: str = AtomicDataDict.PER_ATOM_ENERGY_KEY):
+                 out_field: str = AtomicDataDict.PER_ATOM_ENERGY_KEY
+                ):
         
         super().__init__()
         self.out_field = out_field
         
         
         self.d = d
-        self.Nc = irreps_in[_keys.NODE_FEATURES_F][0][0]
+        self.Nc = 
         self.register_buffer("N_rank_ett", torch.as_tensor(N_rank_ett, dtype=torch.long))
         
         # set up irreps
         self._init_irreps(
             irreps_in=irreps_in,
             required_irreps_in=[
-                _keys.NODE_FEATURES_F
             ],
             irreps_out={_keys.NODE_FEATURES_ETN: o3.Irreps(
-                    [(self.Nc, ir) for _, ir in irreps_in[_keys.NODE_FEATURES_F] ]),
+                    [(self.Nc, ir) for _, ir in irreps_in[AtomicDataDict.EDGE_ATTRS_KEY] ]),
                         out_field: o3.Irreps([(1, (0, 1))])}
         )
         
@@ -58,7 +65,7 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         # Parameters of the network
         
         # tensors for atomic features encoding
-        lmax = irreps_in[_keys.EDGE_FEATURES_F].lmax # maximum spherical harmonic
+        lmax = irreps_in[AtomicDataDict.EDGE_ATTRS_KEY].lmax # maximum spherical harmonic
         self.lmax = lmax
         
         # Second order cores(first and last)
@@ -72,9 +79,9 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         
         # Third order cores
         # Assume irreps does not change 
-        base_in1 = o3.Irreps([el[1] for el in irreps_in[_keys.EDGE_FEATURES_F]])
-        base_in2 = o3.Irreps([el[1] for el in irreps_in[_keys.EDGE_FEATURES_F]])
-        base_out = o3.Irreps([el[1] for el in irreps_in[_keys.EDGE_FEATURES_F]])
+        base_in1 = o3.Irreps([el[1] for el in irreps_in[AtomicDataDict.EDGE_ATTRS_KEY]])
+        base_in2 = o3.Irreps([el[1] for el in irreps_in[AtomicDataDict.EDGE_ATTRS_KEY]])
+        base_out = o3.Irreps([el[1] for el in irreps_in[AtomicDataDict.EDGE_ATTRS_KEY]])
         
 
         # Building instructions
@@ -161,8 +168,21 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         #self.reset_parameters()
 
 
-        #print(w3j.device)
-        # Register layers
+        # Register layers F
+        self.edge_F = [EdgeFeatures_FFunction(
+            lmax=self.lmax,
+            num_types=self.num_types,
+            Nc=self.Nc,
+            num_basis=num_basis,
+            N_rank_spec=N_rank_spec,
+            irreps_edge_sh=base_in2,
+        )  for r in range(self.d)]
+
+        # To convert to node features
+        if normalize_edge_features_f and avg_num_neighbors is not None:
+            self._factor = 1.0 / math.sqrt(avg_num_neighbors)
+        
+        # Register layers tensor
         self.tps = [Contracter_ETN_ALS(base_in1, 
                                    N_rank_ett[r], 
                                    base_in2, 
@@ -174,9 +194,20 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         
         
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
+
+        edge_center = data[AtomicDataDict.EDGE_INDEX_KEY][0]
+        edge_neighbor = data[AtomicDataDict.EDGE_INDEX_KEY][1]
+        species = data[AtomicDataDict.ATOM_TYPE_KEY].squeeze(-1)
         
         # Input features
-        F = data[_keys.NODE_FEATURES_F]
+        edge_features_f = self.edge_F[-1](data[AtomicDataDict.EDGE_EMBEDDING_KEY],
+                             data[_keys.EDGE_TYPE_KEY],
+                             data[AtomicDataDict.EDGE_ATTRS_KEY])
+        
+        F = scatter(edge_features_f, edge_center, dim=0, dim_size=len(species))
+        factor: Optional[float] = self._factor  # torchscript hack for typing
+        if factor is not None:
+            F = F * factor
         
         # Defining tensors for TorchScript
         u_out = torch.zeros((F.shape[0], F.shape[1], self.N_rank_ett[-1]), dtype=F.dtype,
@@ -201,7 +232,17 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
 
         # Series third order tensors
         for i in range(self.d - 2, 0, -1):
+            # Computing F
+            edge_features_f = self.edge_F[i](data[AtomicDataDict.EDGE_EMBEDDING_KEY],
+                     data[_keys.EDGE_TYPE_KEY],
+                     data[AtomicDataDict.EDGE_ATTRS_KEY])
+        
+            F = scatter(edge_features_f, edge_center, dim=0, dim_size=len(species))
+            factor: Optional[float] = self._factor  # torchscript hack for typing
+            if factor is not None:
+                F = F * factor
 
+            
             # big contruction
             u_out = self.tps[i-1](u_out, F, w3j_dense, self.cores[i])
 
@@ -211,6 +252,17 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         
         
         # Reduction to scalar
+        # Computing F
+        edge_features_f = self.edge_F[0](data[AtomicDataDict.EDGE_EMBEDDING_KEY],
+                 data[_keys.EDGE_TYPE_KEY],
+                 data[AtomicDataDict.EDGE_ATTRS_KEY])
+    
+        F = scatter(edge_features_f, edge_center, dim=0, dim_size=len(species))
+        factor: Optional[float] = self._factor  # torchscript hack for typing
+        if factor is not None:
+            F = F * factor
+
+        
         data[self.out_field] = (( data[_keys.NODE_FEATURES_ETN] * F ).sum(dim = (-2, -1) )).unsqueeze(-1)
         
 
