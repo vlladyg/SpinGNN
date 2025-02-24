@@ -1,6 +1,7 @@
 from typing import Optional
 import math
 from e3nn.util.codegen import CodeGenMixin
+from torch import fx
 
 import torch
 from torch_runstats.scatter import scatter
@@ -53,7 +54,7 @@ class EdgeFeatures_F(nn.Module, GraphModuleMixin):
         # tensors for atomic features encoding
         lmax = self.irreps_edge_sh.lmax # maximum spherical harmonic
         
-        self._module = ScalarMLPFunction(
+        self._module = EdgeFeatures_FFunction(
             lmax=lmax,
             num_types=self.num_types,
             Nc=self.Nc,
@@ -100,19 +101,15 @@ class EdgeFeatures_FFunction(CodeGenMixin, torch.nn.Module):
         Q = Proxy(graph.placeholder("x"))
         atom_types_embed = Proxy(graph.placeholder("z"))
         Y = Proxy(graph.placeholder("y"))
-        F = Proxy(graph.placeholder("F"))
         norm_from_last: float = 1.0
 
         base = torch.nn.Module()
 
         # make weights
-        w = torch.empty(h_in, h_out)
-        w.normal_()
-
         A = torch.empty(lmax + 1, N_rank_spec, num_types**2)
         A.normal_()
         
-        B =  torch.empty((lmax + 1, Nc, num_basis, N_rank_spec)           
+        B =  torch.empty(lmax + 1, Nc, num_basis, N_rank_spec)           
         B.normal_()
 
         # generate code
