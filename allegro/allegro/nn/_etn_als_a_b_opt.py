@@ -170,7 +170,7 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         # Register layers F
         self.edge_F = ModuleList([EdgeFeatures_FFunction(
             lmax=self.lmax,
-            num_types=self.num_types,
+            num_types=num_types,
             Nc=self.Nc,
             num_basis=num_basis,
             N_rank_spec=N_rank_spec,
