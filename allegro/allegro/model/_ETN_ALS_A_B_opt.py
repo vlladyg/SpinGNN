@@ -93,8 +93,6 @@ def ETN_ALS_A_B_opt(config, initialize: bool, dataset: Optional[AtomicDataset] =
         "etn": (
             ETN_ALS_A_B_Module_opt,
             dict(
-            d = config['d'],
-            N_rank_ett = config['N_rank_ett'],
             out_field = AtomicDataDict.PER_ATOM_ENERGY_KEY),
         ),
         # Sum system energy:
