@@ -788,6 +788,9 @@ class Trainer:
         finish_all_writes()
 
     def batch_step(self, data, validation=False):
+        
+        
+        if self.optimizer_name != 'LBFGS':
         # no need to have gradients from old steps taking up memory
         self.optim.zero_grad(set_to_none=True)
 
@@ -814,21 +817,31 @@ class Trainer:
         # Note that either way all normalization was handled internally by GraphModel via RescaleOutput
 
         if not validation:
-            # Actually do an optimization step, since we're training:
-            loss, loss_contrib = self.loss(pred=out, ref=data_for_loss)
-            # see https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html#use-parameter-grad-none-instead-of-model-zero-grad-or-optimizer-zero-grad
-            self.optim.zero_grad(set_to_none=True)
-            loss.backward()
+            if self.optimizer_name != 'LBFGS':
+                # Actually do an optimization step, since we're training:
+                loss, loss_contrib = self.loss(pred=out, ref=data_for_loss)
+                # see https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html#use-parameter-grad-none-instead-of-model-zero-grad-or-optimizer-zero-grad
+                self.optim.zero_grad(set_to_none=True)
+                loss.backward()
+    
+                # See https://stackoverflow.com/a/56069467
+                # Has to happen after .backward() so there are grads to clip
+                if self.max_gradient_norm < float("inf"):
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.parameters(), self.max_gradient_norm
+                    )
+    
+                self.optim.step()
+            else:
+                def closure():
+                    self.optim.zero_grad(set_to_none=True)
+                    loss, loss_contrib = self.loss(pred=out, ref=data_for_loss)
+                    loss.backward()
+                    return loss
 
-            # See https://stackoverflow.com/a/56069467
-            # Has to happen after .backward() so there are grads to clip
-            if self.max_gradient_norm < float("inf"):
-                torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(), self.max_gradient_norm
-                )
-
-            self.optim.step()
-
+                self.optim.step(closure)
+                
+    
             if self.use_ema:
                 self.ema.update()
 
