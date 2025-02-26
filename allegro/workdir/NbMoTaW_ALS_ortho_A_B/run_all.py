@@ -157,26 +157,38 @@ def ortho_weights(trainer, config):
 def run_one_sweep_cycle(trainer, config):
     
     cur_sweep = 0 
+    
+    A_B_list = list(trainer.model.get_submodule('model.model.func.etn.edge_F').parameters())
+    for i in range(config['d']):
+        A_B_list[2*i].requires_grad_(False)
+        A_B_list[2*i+1].requires_grad_(False)
+    
 
     # Backward sweeps   
     for i in range(config['d']-1, 0, -1):
         # Check
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(True)
-        
+        A_B_list[2*i].requires_grad_(True)
+        A_B_list[2*i+1].requires_grad_(True) 
+       
         for j in range(config['epochs_per_sweep']):
             trainer.epoch_step()
             trainer.end_of_epoch_save()
 
         # Uncheck
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(False)
-        
+        A_B_list[2*i].requires_grad_(False)
+        A_B_list[2*i+1].requires_grad_(False)        
+
+
         cur_sweep += 1
     
     # Forward sweeps
     for i in range(config['d']-1):
         # Check
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(True)
-        
+        A_B_list[2*i].requires_grad_(True)
+        A_B_list[2*i+1].requires_grad_(True)
 
         for j in range(config['epochs_per_sweep']):
             trainer.epoch_step()
@@ -185,7 +197,10 @@ def run_one_sweep_cycle(trainer, config):
 
         # Uncheck
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(False)
-        
+        A_B_list[2*i].requires_grad_(False)
+        A_B_list[2*i+1].requires_grad_(False)        
+
+
         cur_sweep += 1
     
         
