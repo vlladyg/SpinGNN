@@ -30,7 +30,7 @@ model_dtype: float32
 # -- network --
 # tell nequip which modules to build
 model_builders:
- - allegro.model.ETN_ALS_opt
+ - allegro.model.ETN_ALS_A_B_opt
  # the typical model builders from `nequip` can still be used:
  - PerSpeciesRescale
  - ParaStressForceOutput

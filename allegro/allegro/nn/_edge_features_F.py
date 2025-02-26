@@ -107,11 +107,14 @@ class EdgeFeatures_FFunction(CodeGenMixin, torch.nn.Module):
 
         # make weights
         A = torch.empty(lmax + 1, N_rank_spec, num_types**2)
-        A.normal_()
+        #A.normal_()
+        torch.nn.init.kaiming_uniform_(A, a=math.sqrt(5))
         
         B =  torch.empty(lmax + 1, Nc, num_basis, N_rank_spec)           
-        B.normal_()
-
+        #B.normal_()
+        torch.nn.init.kaiming_uniform_(B, a=math.sqrt(5))
+        
+        
         # generate code
         params[f"A"] = A
         A = Proxy(graph.get_attr(f"A"))
@@ -125,7 +128,7 @@ class EdgeFeatures_FFunction(CodeGenMixin, torch.nn.Module):
         b = torch.einsum('Lrnk,LkE,En->ELr', B, a, Q)
     
         F = torch.concat([torch.einsum('Em,En->Emn', Y[:, slices],
-                                       b[:, l]) for l, slices in enumerate(irreps_edge_sh.slices())], dim = -2)
+                                       b[:, l]) for l, slices in enumerate(irreps_edge_sh.slices())], dim = -2)#/math.sqrt(float(Nc*N_rank_spec*num_types**2))
 
         graph.output(F.node)
 

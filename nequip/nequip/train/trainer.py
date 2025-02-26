@@ -789,8 +789,6 @@ class Trainer:
 
     def batch_step(self, data, validation=False):
         
-        
-        if self.optimizer_name != 'LBFGS':
         # no need to have gradients from old steps taking up memory
         self.optim.zero_grad(set_to_none=True)
 

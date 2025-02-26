@@ -47,7 +47,7 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         
         
         self.d = d
-        self.Nc = 
+        self.Nc = Nc
         self.register_buffer("N_rank_ett", torch.as_tensor(N_rank_ett, dtype=torch.long))
         
         # set up irreps
@@ -237,7 +237,6 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
                      data[AtomicDataDict.EDGE_ATTRS_KEY])
         
             F = scatter(edge_features_f, edge_center, dim=0, dim_size=len(species))
-            factor: Optional[float] = self._factor  # torchscript hack for typing
             if factor is not None:
                 F = F * factor
 
@@ -257,7 +256,6 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
                  data[AtomicDataDict.EDGE_ATTRS_KEY])
     
         F = scatter(edge_features_f, edge_center, dim=0, dim_size=len(species))
-        factor: Optional[float] = self._factor  # torchscript hack for typing
         if factor is not None:
             F = F * factor
 
