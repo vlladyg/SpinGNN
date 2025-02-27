@@ -790,7 +790,8 @@ class Trainer:
     def batch_step(self, data, validation=False):
         
         # no need to have gradients from old steps taking up memory
-        self.optim.zero_grad(set_to_none=True)
+        if self.optimizer_name != 'LBFGS':
+            self.optim.zero_grad(set_to_none=True)
 
         if validation:
             self.model.eval()
@@ -815,6 +816,7 @@ class Trainer:
         # Note that either way all normalization was handled internally by GraphModel via RescaleOutput
 
         if not validation:
+            #print(self.optimizer_name)
             if self.optimizer_name != 'LBFGS':
                 # Actually do an optimization step, since we're training:
                 loss, loss_contrib = self.loss(pred=out, ref=data_for_loss)
@@ -832,13 +834,15 @@ class Trainer:
                 self.optim.step()
             else:
                 def closure():
-                    self.optim.zero_grad(set_to_none=True)
-                    loss, loss_contrib = self.loss(pred=out, ref=data_for_loss)
-                    loss.backward()
-                    return loss
+                    out = self.model(data_for_loss)
+                    
+                    loss_new, loss_contrib_new = self.loss(pred=out, ref=data_for_loss)
+                    self.optim.zero_grad()
+                    loss_new.backward()
+                    return loss_new
 
                 self.optim.step(closure)
-                
+                loss, loss_contrib = self.loss(pred=out, ref=data_for_loss)
     
             if self.use_ema:
                 self.ema.update()

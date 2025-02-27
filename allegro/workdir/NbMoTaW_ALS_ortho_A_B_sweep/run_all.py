@@ -25,7 +25,7 @@ default_config = dict(
         "RescaleEnergyEtc",
     ],
     dataset_statistics_stride=1,
-    device='cpu',
+    device='cuda:0',
     default_dtype="float64",
     model_dtype="float32",
     allow_tf32=True,
@@ -93,12 +93,19 @@ def run_ind(ind):
     
     
     num_sweeps = config['max_epochs'] // config['epochs_per_sweep']
+
+    # init instructions, ranks
+    instructions = []
+    for i in range(config['d']):
+        instructions.append([tuple(el) for el in trainer.model.get_buffer(f'model.model.func.etn.instructions_list_{i}').tolist()])
+    
+    ranks = [1] + trainer.model.get_buffer(f'model.model.func.etn.N_rank_ett').tolist() + [1]
     
     cur_sweep = 0
+
+    ortho_weights(trainer, config, ranks, instructions)
     while not trainer.stop_cond and cur_sweep < num_sweeps:
-        ortho_weights(trainer, config)
-        
-        cur_sweep += run_one_sweep_cycle(trainer, config)
+        cur_sweep += run_one_sweep_cycle(trainer, config, ranks, instructions)
 
 
     trainer.stop_cond
@@ -133,7 +140,7 @@ def init_trainer(trainer):
     
     trainer.init_metrics()
 
-def ortho_weights(trainer, config):
+def ortho_weights(trainer, config, ranks, instructions):
     
     # Making all non trainable
     for i in range(config['d']):
@@ -143,64 +150,67 @@ def ortho_weights(trainer, config):
         trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.A').requires_grad_(False)
         trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.B').requires_grad_(False)
 
-
     # TODO: ask Max or check if sweep orthogonalization works better
-    # Orthogonalization
-    cores = trainer.model.get_submodule('model.model.func.etn.cores')
-    instructions = []
-    for i in range(config['d']):
-        instructions.append([tuple(el) for el in trainer.model.get_buffer(f'model.model.func.etn.instructions_list_{i}').tolist()])
-    
-    ranks = [1] + trainer.model.get_buffer(f'model.model.func.etn.N_rank_ett').tolist() + [1]
-
-    cores_new, R = rl_orthogonal(cores, ranks, instructions)
+    # rl (backward) Orthogonalization
+    cores_new, R = rl_orthogonal(trainer.model.get_submodule('model.model.func.etn.cores'), ranks, instructions)
 
     for i in range(config['d']):
         trainer.model.get_submodule('model.model.func.etn.cores')[i] = cores_new[i]
     
 
-def run_one_sweep_cycle(trainer, config):
+def run_one_sweep_cycle(trainer, config, ranks, instructions):
     
     cur_sweep = 0 
-    
 
     # Backward sweeps   
     for i in range(config['d']-1, 0, -1):
-        # Check
+        # Check training
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(True)
         trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.A').requires_grad_(True)
-        trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.B').requires_grad_(True)       
+        trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.B').requires_grad_(True)        
 
         for j in range(config['epochs_per_sweep']):
             trainer.epoch_step()
             trainer.end_of_epoch_save()
 
-        # Uncheck
+        # Uncheck training
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(False)
         trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.A').requires_grad_(False)
         trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.B').requires_grad_(False)
-
+        
+        # rl orthogonalize
+        cores_new, _ = rl_orthogonal_ind(trainer.model.get_submodule('model.model.func.etn.cores'), ranks, instructions, i)
+        trainer.model.get_submodule('model.model.func.etn.cores')[i] = cores_new[i]
+        trainer.model.get_submodule('model.model.func.etn.cores')[i-1] = cores_new[i-1]
+        
         cur_sweep += 1
+
     
     # Forward sweeps
     for i in range(config['d']-1):
-        # Check
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(True)
         trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.A').requires_grad_(True)
         trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.B').requires_grad_(True)
+        
+        #if i != 0:
+        #    trainer.model.get_submodule('model.model.func.etn.cores')[i-1].requires_grad_(False)
 
         for j in range(config['epochs_per_sweep']):
             trainer.epoch_step()
             trainer.end_of_epoch_save()
 
-
-        # Uncheck
+        # Uncheck training
         trainer.model.get_submodule('model.model.func.etn.cores')[i].requires_grad_(False)
         trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.A').requires_grad_(False)
         trainer.model.get_parameter(f'model.model.func.etn.edge_F.{i}._forward.B').requires_grad_(False)
 
+        # lr orthogonalize
+        cores_new, _ = lr_orthogonal_ind(trainer.model.get_submodule('model.model.func.etn.cores'), ranks, instructions, i)
+        trainer.model.get_submodule('model.model.func.etn.cores')[i] = cores_new[i]
+        trainer.model.get_submodule('model.model.func.etn.cores')[i+1] = cores_new[i+1]
+        
+        
         cur_sweep += 1
-    
         
     return cur_sweep 
     
