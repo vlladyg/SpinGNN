@@ -40,7 +40,8 @@ def lr_orthogonal(tt_cores, R, instr):
         ind_left = [[ii for ii, ir in enumerate(instr[i]) if ir[-1] == ll] for ll in range(lmax+1)]
         ind_right = [[ii for ii, ir in enumerate(instr[i+1]) if ir[0] == ll] for ll in range(lmax+1)]
         
-        
+        print(ind_left)
+        print(ind_right)
         # Loop over orthogonalized momentum
         
         core_next = tt_cores[i+1]

@@ -56,7 +56,7 @@ def ETN_ALS_A_B_opt(config, initialize: bool, dataset: Optional[AtomicDataset] =
         assert parity_setting in ("o3_full", "o3_restricted", "so3")
         irreps_edge_sh = repr(
             o3.Irreps.spherical_harmonics(
-                l_max, p=-1
+                l_max, p=(1 if parity_setting == "so3" else -1)
             )
         )
         nonscalars_include_parity = parity_setting == "o3_full"
