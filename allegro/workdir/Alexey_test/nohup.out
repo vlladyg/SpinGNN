@@ -1,0 +1,202 @@
+Processing dataset...
+Done!
+DEBUG:root:* Initialize Output
+  ...generate file name results/MEA_Allegro_0/example/log
+  ...open log file results/MEA_Allegro_0/example/log
+  ...generate file name results/MEA_Allegro_0/example/metrics_epoch.csv
+  ...open log file results/MEA_Allegro_0/example/metrics_epoch.csv
+  ...generate file name results/MEA_Allegro_0/example/metrics_initialization.csv
+  ...open log file results/MEA_Allegro_0/example/metrics_initialization.csv
+  ...generate file name results/MEA_Allegro_0/example/metrics_batch_train.csv
+  ...open log file results/MEA_Allegro_0/example/metrics_batch_train.csv
+  ...generate file name results/MEA_Allegro_0/example/metrics_batch_val.csv
+  ...open log file results/MEA_Allegro_0/example/metrics_batch_val.csv
+  ...generate file name results/MEA_Allegro_0/example/best_model.pth
+  ...generate file name results/MEA_Allegro_0/example/last_model.pth
+  ...generate file name results/MEA_Allegro_0/example/trainer.pth
+  ...generate file name results/MEA_Allegro_0/example/config.yaml
+Torch device: cuda:0
+instantiate Loss
+...Loss_param = dict(
+...   optional_args = {'coeff_schedule': 'constant'},
+...   positional_args = {'coeffs': {'forces': 1.0, 'total_energy': [1.0, 'PerAtomMSELoss']}})
+instantiate MSELoss
+...MSELoss_param = dict(
+...   optional_args = {'size_average': None, 'reduce': None},
+...   positional_args = {'reduction': 'none'})
+ parsing forces 1.0
+ parsing 1.0 MSELoss
+instantiate MSELoss
+...MSELoss_param = dict(
+...   optional_args = {'size_average': None, 'reduce': None},
+...   positional_args = {'reduction': 'none'})
+ parsing total_energy [1.0, 'PerAtomMSELoss']
+ parsing 1.0 PerAtomMSELoss
+create loss instance <class 'nequip.train._loss.PerAtomLoss'>
+instantiate MSELoss
+...MSELoss_param = dict(
+...   optional_args = {'size_average': None, 'reduce': None},
+...   positional_args = {'reduction': 'none'})
+Building ETN model...
+instantiate PairTypeEmbedding
+        all_args :                                           num_types
+...PairTypeEmbedding_param = dict(
+...   optional_args = {'num_types': 1},
+...   positional_args = {'irreps_in': None})
+instantiate OneHotAtomEncoding
+        all_args :                                           num_types
+...OneHotAtomEncoding_param = dict(
+...   optional_args = {'set_features': True, 'num_types': 1},
+...   positional_args = {'irreps_in': {'pos': 1x1oe, 'edge_index': None, 'edge_types': 1x0ee}})
+instantiate RadialBasisEdgeEncoding
+        all_args :                                  basis_kwargs.r_max <-                                              r_max
+        all_args :            basis_kwargs.original_basis_kwargs.r_max <-                                              r_max
+        all_args :        basis_kwargs.original_basis_kwargs.trainable <-                              BesselBasis_trainable
+        all_args :                                 cutoff_kwargs.r_max <-                                              r_max
+        all_args :                                     cutoff_kwargs.p <-                                 PolynomialCutoff_p
+   optional_args :                                               basis
+   optional_args :                                           out_field
+...RadialBasisEdgeEncoding_param = dict(
+...   optional_args = {'basis': <class 'allegro.nn._norm_basis.NormalizedBasis'>, 'cutoff': <class 'nequip.nn.cutoffs.PolynomialCutoff'>, 'basis_kwargs': {'r_min': 0.0, 'original_basis': <class 'nequip.nn.radial_basis.BesselBasis'>, 'original_basis_kwargs': {'num_basis': 8, 'trainable': False, 'r_max': 5.0}, 'n': 4000, 'norm_basis_mean_shift': True, 'r_max': 5.0}, 'cutoff_kwargs': {'p': 5, 'r_max': 5.0}, 'out_field': 'edge_embedding'},
+...   positional_args = {'irreps_in': {'pos': 1x1oe, 'edge_index': None, 'edge_types': 1x0ee, 'node_attrs': 1x0ee, 'node_features': 1x0ee}})
+instantiate SphericalHarmonicEdgeAttrs
+        all_args :                                      irreps_edge_sh
+...SphericalHarmonicEdgeAttrs_param = dict(
+...   optional_args = {'edge_sh_normalization': 'component', 'edge_sh_normalize': True, 'out_field': 'edge_attrs', 'irreps_edge_sh': '1x0ee+1x1ee'},
+...   positional_args = {'irreps_in': {'pos': 1x1oe, 'edge_index': None, 'edge_types': 1x0ee, 'node_attrs': 1x0ee, 'node_features': 1x0ee, 'edge_embedding': 8x0ee, 'edge_cutoff': 1x0ee}})
+instantiate ETN_ALS_A_B_Module_opt
+        all_args :                                         N_rank_spec
+        all_args :                                                   d
+        all_args :                                          N_rank_ett
+        all_args :                                                  Nc
+        all_args :                                           num_types
+        all_args :                                   avg_num_neighbors
+   optional_args :                                           out_field
+...ETN_ALS_A_B_Module_opt_param = dict(
+...   optional_args = {'Nc': 2, 'num_types': 1, 'num_basis': 8, 'N_rank_spec': 1, 'avg_num_neighbors': 30.3408203125, 'normalize_edge_features_f': True, 'out_field': 'atomic_energy', 'd': 3, 'N_rank_ett': [1, 1]},
+...   positional_args = {'irreps_in': {'pos': 1x1oe, 'edge_index': None, 'edge_types': 1x0ee, 'node_attrs': 1x0ee, 'node_features': 1x0ee, 'edge_embedding': 8x0ee, 'edge_cutoff': 1x0ee, 'edge_attrs': 1x0ee+1x1ee}})
+/pscratch/sd/v/vladygin/doped-Si_project/MLFF_TDEP/testbench/lib/python3.10/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/pscratch/sd/v/vladygin/doped-Si_project/MLFF_TDEP/testbench/lib/python3.10/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/pscratch/sd/v/vladygin/doped-Si_project/MLFF_TDEP/testbench/lib/python3.10/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/pscratch/sd/v/vladygin/doped-Si_project/MLFF_TDEP/testbench/lib/python3.10/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+instantiate AtomwiseReduce
+   optional_args :                                               field
+   optional_args :                                           out_field
+   optional_args :                                              reduce
+...AtomwiseReduce_param = dict(
+...   optional_args = {'out_field': 'total_energy', 'reduce': 'sum', 'avg_num_atoms': None, 'field': 'atomic_energy'},
+...   positional_args = {'irreps_in': {'pos': 1x1oe, 'edge_index': None, 'edge_types': 1x0ee, 'node_attrs': 1x0ee, 'node_features': 1x0ee, 'edge_embedding': 8x0ee, 'edge_cutoff': 1x0ee, 'edge_attrs': 1x0ee+1x1ee, 'node_features_ETN': 2x0ee+2x1ee, 'atomic_energy': 1x0ee}})
+Replace string dataset_forces_rms to 0.6308107972145081
+Replace string dataset_per_atom_total_energy_mean to -3.641756057739258
+Atomic outputs are scaled by: [Al: 0.630811], shifted by [Al: -3.641756].
+instantiate PerSpeciesScaleShift
+        all_args :                                       default_dtype
+        all_args :                                           num_types
+        all_args :                                          type_names
+   optional_args :                                              scales
+   optional_args :                                           out_field
+   optional_args :                                              shifts
+   optional_args :                                               field
+   optional_args :                          arguments_in_dataset_units
+...PerSpeciesScaleShift_param = dict(
+...   optional_args = {'out_field': 'atomic_energy', 'scales_trainable': False, 'shifts_trainable': False, 'default_dtype': 'float32', 'num_types': 1, 'type_names': ['Al'], 'field': 'atomic_energy', 'shifts': tensor(-3.6418), 'scales': tensor(0.6308), 'arguments_in_dataset_units': True},
+...   positional_args = {'irreps_in': {'pos': 1x1oe, 'edge_index': None, 'edge_types': 1x0ee, 'node_attrs': 1x0ee, 'node_features': 1x0ee, 'edge_embedding': 8x0ee, 'edge_cutoff': 1x0ee, 'edge_attrs': 1x0ee+1x1ee, 'node_features_ETN': 2x0ee+2x1ee, 'atomic_energy': 1x0ee}})
+Replace string dataset_forces_rms to 0.6308107972145081
+Initially outputs are globally scaled by: 0.6308107972145081, total_energy are globally shifted by None.
+PerSpeciesScaleShift's arguments were in dataset units; rescaling:
+  Original scales: [Al: 0.630811] shifts: [Al: -3.641756]
+  New scales: [Al: 1.000000] shifts: [Al: -5.773135]
+Number of weights: 120
+Number of trainable weights: 120
+instantiate Adam
+        all_args :                                                 eps <-                               optimizer_params.eps
+        all_args :                                        weight_decay <-                      optimizer_params.weight_decay
+        all_args :                                             amsgrad <-                           optimizer_params.amsgrad
+        all_args :                                               betas <-                             optimizer_params.betas
+...Adam_param = dict(
+...   optional_args = {'betas': (0.9, 0.999), 'eps': 1e-08, 'weight_decay': 0.0, 'amsgrad': False, 'foreach': None, 'maximize': False, 'capturable': False, 'differentiable': False, 'fused': None},
+...   positional_args = {'params': <generator object Module.parameters at 0x7f5588617b50>, 'lr': 0.002})
+instantiate ReduceLROnPlateau
+        all_args :                                            patience <-                              lr_scheduler_patience
+        all_args :                                              factor <-                                lr_scheduler_factor
+...ReduceLROnPlateau_param = dict(
+...   optional_args = {'mode': 'min', 'factor': 0.5, 'patience': 50, 'threshold': 0.0001, 'threshold_mode': 'rel', 'cooldown': 0, 'min_lr': 0, 'eps': 1e-08, 'verbose': 'deprecated'},
+...   positional_args = {'optimizer': Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    capturable: False
+    differentiable: False
+    eps: 1e-08
+    foreach: None
+    fused: None
+    lr: 0.002
+    maximize: False
+    weight_decay: 0.0
+)})
+get args for EarlyStopping
+        all_args :                                        upper_bounds <-                        early_stopping_upper_bounds
+        all_args :                                           patiences <-                           early_stopping_patiences
+        all_args :                                        lower_bounds <-                        early_stopping_lower_bounds
+...EarlyStopping_param = dict(
+...   optional_args = {'lower_bounds': {'LR': 1e-05}, 'upper_bounds': {'cumulative_wall': 604800.0}, 'patiences': {'validation_loss': 100}, 'delta': {}, 'cumulative_delta': False},
+...   positional_args = {})
+! Starting training ...
+Saved trainer to results/MEA_Allegro_0/example/trainer.pth
+Saved last model to to results/MEA_Allegro_0/example/last_model.pth
+instantiate Metrics
+...Metrics_param = dict(
+...   optional_args = {},
+...   positional_args = {'components': [['forces', 'mae'], ['forces', 'rmse'], ['total_energy', 'mae'], ['total_energy', 'mae', {'PerAtom': True}]]})
+instantiate L1Loss
+...L1Loss_param = dict(
+...   optional_args = {'size_average': None, 'reduce': None},
+...   positional_args = {'reduction': 'none'})
+instantiate L1Loss
+...L1Loss_param = dict(
+...   optional_args = {'size_average': None, 'reduce': None},
+...   positional_args = {'reduction': 'none'})
+instantiate L1Loss
+...L1Loss_param = dict(
+...   optional_args = {'size_average': None, 'reduce': None},
+...   positional_args = {'reduction': 'none'})
+instantiate L1Loss
+...L1Loss_param = dict(
+...   optional_args = {'size_average': None, 'reduce': None},
+...   positional_args = {'reduction': 'none'})
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+      0    17        0.775        0.771      0.00406        0.416        0.554         4.22       0.0391
+
+
+  Initialization     #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Initial Validation          0    1.829    0.002         1.08      0.00621         1.09        0.487        0.657         4.53       0.0419
+Wall time: 1.8300157870107796
+! Best model        0    1.087
+Saved trainer to results/MEA_Allegro_0/example/trainer.pth
+Saved last model to to results/MEA_Allegro_0/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+      1    70        0.389         0.26        0.129        0.221        0.322         24.5        0.226
+
+validation
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
+      1    17        0.437        0.327         0.11        0.252        0.361         22.5        0.208
+
+
+  Train      #    Epoch      wal       LR       loss_f       loss_e         loss        f_mae       f_rmse        e_mae      e/N_mae
+! Train               1    6.329    0.002        0.822       0.0371        0.859        0.417        0.572         9.93       0.0919
+! Validation          1    6.329    0.002        0.516         0.11        0.626        0.312        0.454         22.4        0.207
+Wall time: 6.332649965013843
+! Best model        1    0.626
+Saved trainer to results/MEA_Allegro_0/example/trainer.pth
+Saved last model to to results/MEA_Allegro_0/example/last_model.pth
+
+training
+# Epoch batch         loss       loss_f       loss_e        f_mae       f_rmse        e_mae      e/N_mae
