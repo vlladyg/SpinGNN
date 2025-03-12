@@ -117,7 +117,7 @@ def rl_orthogonal(tt_cores, R, instr):
     cores_new[-1] = tt_cores[-1]+0
     for i in range(d-1,0,-1):
         # Init instr
-        lmax = max([el[2] for el in instr[i]])
+        lmax = max([el[0] for el in instr[i]])
         ind_left = [[ii for ii, ir in enumerate(instr[i-1]) if ir[-1] == ll] for ll in range(lmax+1)]
         ind_right = [[ii for ii, ir in enumerate(instr[i]) if ir[0] == ll] for ll in range(lmax+1)]
         
@@ -245,7 +245,7 @@ def rl_orthogonal_ind(tt_cores, R, instr, i):
     cores_new[i] = tt_cores[i]+0
     
     # Init instr
-    lmax = max([el[2] for el in instr[i]])
+    lmax = max([el[0] for el in instr[i]])
     ind_left = [[ii for ii, ir in enumerate(instr[i-1]) if ir[-1] == ll] for ll in range(lmax+1)]
     ind_right = [[ii for ii, ir in enumerate(instr[i]) if ir[0] == ll] for ll in range(lmax+1)]
     
