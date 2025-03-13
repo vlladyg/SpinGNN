@@ -57,7 +57,7 @@ def ETN_third_order_step_forward(
 
     # do the einsum
     
-    einstr = f"puvw,ziu,zjv,pkij->zkw"
+    einstr = f"puvw,zkw,zjv,pkij->ziu"
     u_out = torch.einsum(einstr, C, u_in, F, w3j)
     
     graph_out.output(u_out.node)

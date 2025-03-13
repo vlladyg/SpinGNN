@@ -105,7 +105,7 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         # building large w3j
         w3j_values = []
         w3j_index = []
-        for i_in1, i_in2, i_out in instructions:
+        for ins_i, (i_in1, i_in2, i_out) in enumerate(instructions):
             mul_ir_in1 = base_in1[i_in1]
             mul_ir_in2 = base_in2[i_in2]
             mul_ir_out = base_out[i_out]
@@ -123,7 +123,6 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
             w3j_values.append(
                 this_w3j[this_w3j_index[:, 0], this_w3j_index[:, 1], this_w3j_index[:, 2]]
             )
-    
             
             this_w3j_index[:, 0] += base_in1[: i_in1].dim
             this_w3j_index[:, 1] += base_in2[: i_in2].dim
@@ -131,7 +130,8 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
             # Now need to flatten the index to be for [pk][ij]
             w3j_index.append(
                 torch.cat(
-                    (   this_w3j_index[:, 2].unsqueeze(-1),
+                    (  ins_i  * base_out.dim
+                        + this_w3j_index[:, 2].unsqueeze(-1),
                         this_w3j_index[:, 0].unsqueeze(-1) * base_in2.dim
                         + this_w3j_index[:, 1].unsqueeze(-1),
                     ),
@@ -225,10 +225,13 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
             .contiguous()
         )   
         
+        #print(F[0, :, 0], F.shape)
         # First transform using second order tensors
         for i, slice in enumerate(slices):
             u_out[:, slice, :] = torch.einsum('ij,Nmj->Nmi', self.cores[-1][i].squeeze(-1), F[:, slice, :])
 
+            
+        #print(u_out[0, :, 0])
         # Series third order tensors
         for i in range(self.d - 2, 0, -1):
             # Computing F
@@ -237,6 +240,7 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
                      data[AtomicDataDict.EDGE_ATTRS_KEY])
         
             F = scatter(edge_features_f, edge_center, dim=0, dim_size=len(species))
+            factor: Optional[float] = self._factor  # torchscript hack for typing
             if factor is not None:
                 F = F * factor
 
@@ -248,7 +252,7 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         for i, slice in enumerate(slices):
             data[_keys.NODE_FEATURES_ETN][:, slice, :] = torch.einsum('ij,Nmj->Nmi', self.cores[0][i].squeeze(0), u_out[:, slice, :])
         
-        
+        #print(data[_keys.NODE_FEATURES_ETN][0, :, 0])
         # Reduction to scalar
         # Computing F
         edge_features_f = self.edge_F[0](data[AtomicDataDict.EDGE_EMBEDDING_KEY],
@@ -256,6 +260,7 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
                  data[AtomicDataDict.EDGE_ATTRS_KEY])
     
         F = scatter(edge_features_f, edge_center, dim=0, dim_size=len(species))
+        factor: Optional[float] = self._factor  # torchscript hack for typing
         if factor is not None:
             F = F * factor
 
