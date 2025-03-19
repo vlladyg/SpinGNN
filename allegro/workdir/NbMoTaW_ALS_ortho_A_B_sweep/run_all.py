@@ -104,7 +104,7 @@ def run_ind(ind):
     cur_sweep = 0
 
     ortho_weights(trainer, config, ranks, instructions)
-    while not trainer.stop_cond and cur_sweep < num_sweeps:
+    while not trainer.stop_cond or cur_sweep < num_sweeps:
         cur_sweep += run_one_sweep_cycle(trainer, config, ranks, instructions)
 
 
