@@ -20,7 +20,7 @@ from ._strided import Contracter_ETN_ALS
 from .cutoffs import cosine_cutoff, polynomial_cutoff
 from e3nn.o3 import wigner_3j
 from torch.nn import Parameter, ParameterList
-
+from math import sqrt
 
 # Triangular ineguality for path existance
 def tri_ineq(l1, l2, l3):
@@ -62,8 +62,8 @@ class ETN_ALS_Module_opt(nn.Module, GraphModuleMixin):
         self.lmax = lmax
         
         # Second order cores(first and last)
-        core2_1 = Parameter(torch.empty(lmax+1, 1, self.Nc, N_rank_ett[0]).normal_())
-        core2_d = Parameter(torch.empty(lmax+1, N_rank_ett[-1], self.Nc, 1).normal_())
+        core2_1 = Parameter(torch.empty(lmax+1, 1, self.Nc, N_rank_ett[0]).normal_())/sqrt(N_rank_ett[0])
+        core2_d = Parameter(torch.empty(lmax+1, N_rank_ett[-1], self.Nc, 1).normal_())/sqrt(self.Nc)
 
 
         instructions_1 = [(0, l, l) for l in range(lmax + 1)]
@@ -99,7 +99,7 @@ class ETN_ALS_Module_opt(nn.Module, GraphModuleMixin):
         # building large w3j
         w3j_values = []
         w3j_index = []
-        for i_in1, i_in2, i_out in instructions:
+        for ins_i, (i_in1, i_in2, i_out) in enumerate(instructions):
             mul_ir_in1 = base_in1[i_in1]
             mul_ir_in2 = base_in2[i_in2]
             mul_ir_out = base_out[i_out]
@@ -117,7 +117,12 @@ class ETN_ALS_Module_opt(nn.Module, GraphModuleMixin):
             w3j_values.append(
                 this_w3j[this_w3j_index[:, 0], this_w3j_index[:, 1], this_w3j_index[:, 2]]
             )
-    
+
+
+            w3j_norm_term = (2 * mul_ir_out.ir.l + 1) * (2 * mul_ir_in2.ir.l + 1) #(2 * mul_ir_out.ir.l + 1)  # (2 * mul_ir_in1.ir.l + 1) * (2 * mul_ir_in2.ir.l + 1) #
+            #print(len([i for i in instructions if i[0] == i_in1]))
+            alpha = sqrt(w3j_norm_term/(self.Nc*N_rank_ett[0]*len([i for i in instructions if i[0] == i_in1])))
+            w3j_values[-1].mul_(alpha)
             
             this_w3j_index[:, 0] += base_in1[: i_in1].dim
             this_w3j_index[:, 1] += base_in2[: i_in2].dim
@@ -125,7 +130,8 @@ class ETN_ALS_Module_opt(nn.Module, GraphModuleMixin):
             # Now need to flatten the index to be for [pk][ij]
             w3j_index.append(
                 torch.cat(
-                    (   this_w3j_index[:, 2].unsqueeze(-1),
+                    (  ins_i  * base_out.dim
+                        + this_w3j_index[:, 2].unsqueeze(-1),
                         this_w3j_index[:, 0].unsqueeze(-1) * base_in2.dim
                         + this_w3j_index[:, 1].unsqueeze(-1),
                     ),

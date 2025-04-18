@@ -107,25 +107,25 @@ class EdgeFeatures_FFunction(CodeGenMixin, torch.nn.Module):
 
         # make weights
         A = torch.empty(lmax + 1, N_rank_spec, num_types**2)
-        #A.normal_()
-        torch.nn.init.kaiming_uniform_(A, a=math.sqrt(5))
+        A.normal_()
+        #torch.nn.init.kaiming_uniform_(A, a=math.sqrt(5))
         
-        B =  torch.empty(lmax + 1, Nc, num_basis, N_rank_spec)           
-        #B.normal_()
-        torch.nn.init.kaiming_uniform_(B, a=math.sqrt(5))
+        B = torch.empty(lmax + 1, Nc, num_basis, N_rank_spec)           
+        B.normal_()
+        #torch.nn.init.kaiming_uniform_(B, a=math.sqrt(5))
         
         
         # generate code
         params[f"A"] = A
-        A = Proxy(graph.get_attr(f"A"))
+        A = Proxy(graph.get_attr(f"A"))/(N_rank_spec)**(1/2.)
 
         params[f"B"] = B
-        B = Proxy(graph.get_attr(f"B"))
+        B = Proxy(graph.get_attr(f"B"))/(num_basis)**(1/2.)
 
 
         # Algo from ETN paper to gen F (notation preserved)
         a = A[:, :, atom_types_embed].squeeze(-1)
-        b = torch.einsum('Lrnk,LkE,En->ELr', B, a, Q)
+        b = torch.einsum('Lrnk,LkE,En->ELr', B, a, Q)#/sqrt(num_basis)/sqrt(N_rank_spec)
     
         F = torch.concat([torch.einsum('Em,En->Emn', Y[:, slices],
                                        b[:, l]) for l, slices in enumerate(irreps_edge_sh.slices())], dim = -2)#/math.sqrt(float(Nc*N_rank_spec*num_types**2))
