@@ -4,7 +4,7 @@ run_name: NaBr
 seed: 123456
 dataset_seed: 123456
 append: true
-default_dtype: float64
+default_dtype: float32
 
 # -- network --
 model_builders:
@@ -23,11 +23,11 @@ BesselBasis_trainable: true
 PolynomialCutoff_p: 6   
 
 # symmetry
-l_max: 2 # 2
+l_max: 1 # 2
 parity: o3_full   
 
 # Allegro layers:
-num_layers: 2 # 2 
+num_layers: 1 # 2 
 env_embed_multiplicity: 8
 embed_initial_edge: true
 
@@ -72,7 +72,7 @@ log_batch_freq: 10
 n_train: 150
 n_val: 30
 batch_size: 1
-max_epochs: 5
+max_epochs: 100
 learning_rate: 0.002 # 0.001
 train_val_split: random
 shuffle: true
@@ -121,5 +121,3 @@ early_stopping_lower_bounds:
 
 early_stopping_patiences:
   validation_loss: 100
-
-default_dtype: float64
