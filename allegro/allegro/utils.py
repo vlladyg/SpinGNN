@@ -18,6 +18,8 @@ def QR(mat):
     Q,R = tn.linalg.qr(mat)
     return Q, R
 
+
+
 def lr_orthogonal(tt_cores, R, instr):
     """Make cores left orthogonal in equivariant sence
         tt_cores = [torch.randn(num_paths, rank[r], Nc[r], rank[r+1]) for r in range(d)] 
