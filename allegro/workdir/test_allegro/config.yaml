@@ -1,0 +1,180 @@
+run: [train, test]
+
+cutoff_radius: 5.0
+chemical_symbols: [Si] 
+model_type_names: ${chemical_symbols}
+
+
+# ============
+#     DATA
+# ============
+# `data` is managed by `LightningDataModule`s
+# NequIP provides some standard datamodules that can be found in `nequip.data.datamodule`
+# Users are free to define and use their own datamodules that subclass nequip.data.datamodule.NequIPDataModule
+data:
+  _target_: nequip.data.datamodule.ASEDataModule
+  seed: 456             # dataset seed for reproducibility
+  
+  # here we take an ASE-readable file (in extxyz format) and split it into train:val:test = 80:10:10
+  split_dataset:
+    file_path: ./sitraj.xyz
+    train: 0.8
+    val: 0.1
+    test: 0.1
+
+  # `transforms` convert data from the Dataset to a form that can be used by the ML model
+  # the transforms are only performed right before data is given to the model
+  # data is kept in its untransformed form
+  
+  transforms:
+    # data doesn't usually come with a neighborlist -- this tranforms prepares the neighborlist
+    - _target_: nequip.data.transforms.NeighborListTransform
+      r_max: ${cutoff_radius}
+    # the models only know atom types, which can be different from the chemical species (e.g. C, H)
+    # for instance we can have data with different charge states of carbon, which means they are
+    # all labeled by chemical species `C`, but may have different atom type labels based on the charge states
+    # in this case, the atom types are the same as the chemical species, but we still have to include this
+    # transformation to ensure that the data has 0-indexed atom type lists used in the various model operations 
+    - _target_: nequip.data.transforms.ChemicalSpeciesToAtomTypeMapper
+      chemical_symbols: ${chemical_symbols}
+
+  # the following are torch.utils.data.DataLoader configs excluding the arguments `dataset` and `collate_fn`
+  # https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
+  train_dataloader:
+    _target_: torch.utils.data.DataLoader
+    batch_size: 5
+    num_workers: 5
+    shuffle: true
+  val_dataloader:
+    _target_: torch.utils.data.DataLoader
+    batch_size: 10
+    num_workers: ${data.train_dataloader.num_workers}  # we want to use the same num_workers -- variable interpolation helps
+  test_dataloader: ${data.val_dataloader}  # variable interpolation comes in handy again
+
+  # dataset statistics can be calculated to be used for model initialization such as for shifting, scaling and standardizing.
+  # it is advised to provide custom names -- you will have to retrieve them later under model to initialize certain parameters to the dataset statistics computed
+  stats_manager:
+    # dataset statistics is handled by the `DataStatisticsManager`
+    # here, we use `CommonDataStatisticsManager` for a basic set of dataset statistics for general use cases
+    # the dataset statistics include `num_neighbors_mean`, `per_atom_energy_mean`, `forces_rms`, `per_type_forces_rms`
+    _target_: nequip.data.CommonDataStatisticsManager
+    # dataloader kwargs for data statistics computation
+    # `batch_size` should ideally be as large as possible without trigerring OOM
+    dataloader_kwargs:
+      batch_size: 10
+    # we need to provide the same type names that correspond to the model's `type_names`
+    # so we interpolate the "central source of truth" model type names from above
+    type_names: ${model_type_names}
+
+trainer:
+  _target_: lightning.Trainer
+  max_epochs: 5
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 5
+  callbacks:
+    - _target_: lightning.pytorch.callbacks.ModelCheckpoint
+      dirpath: ${hydra:runtime.output_dir}
+      save_last: true
+
+training_module:
+  _target_: nequip.train.EMALightningModule
+  loss:
+    _target_: nequip.train.EnergyForceLoss
+    per_atom_energy: true
+    coeffs:
+      total_energy: 1.0
+      forces: 1.0
+  val_metrics:
+    _target_: nequip.train.EnergyForceMetrics
+    coeffs:
+      per_atom_energy_mae: 1.0
+      forces_mae: 1.0
+  test_metrics: ${training_module.val_metrics}
+  optimizer:
+    _target_: torch.optim.Adam
+    lr: 0.001
+
+  model:
+    _target_: allegro.model.AllegroModel
+
+    # === basic model params ===
+    seed: 456
+    model_dtype: float32
+    type_names: ${model_type_names}
+    r_max: ${cutoff_radius}
+
+    # == two-body scalar embedding ==
+    scalar_embed:
+      # classic option is the Bessel scalar embedding module
+      _target_: allegro.nn.TwoBodyBesselScalarEmbed
+      num_bessels: 8
+      bessel_trainable: false
+      polynomial_cutoff_p: 6
+      two_body_embedding_dim: 32
+      two_body_mlp_hidden_layers_depth: 2
+      two_body_mlp_hidden_layers_width: 64
+      two_body_mlp_nonlinearity: silu
+
+      # one could also use the spline embedding module with less hyperparameters
+      # _target_: allegro.nn.TwoBodySplineScalarEmbed
+      # num_splines: 8
+      # spline_span: 3
+
+    # one could explicitly specify the initial scalar embedding's output dimension
+    # if `scalar_embed_output_dim` is not provided (or `null`), Allegro will use `num_scalar_features` in its place
+    # scalar_embed_output_dim: 256
+
+    # == symmetry ==
+    # maximum order l to use in spherical harmonics embedding, 1 is baseline (fast), 2 is more accurate, but slower, 3 highly accurate but slow
+    l_max: 1
+    # whether to include parity symmetry equivariance
+    # allowed: o3_full, o3_restricted, so3
+    parity_setting: o3_full   
+
+    # == allegro layers ==
+    # number of tensor product layers, 1-3 usually best, more is more accurate but slower
+    num_layers: 2
+
+    # number of scalar features, more is more accurate but slower
+    # powers of two (4, 8, 16, 64, 128, 256, 512, ...) are good options to try depending on data set
+    num_scalar_features: 64
+
+    # number of tensor features, more is more accurate but slower
+    # powers of two (4, 8, 16, 64, 128, ...) are good options to try depending on data set
+    num_tensor_features: 32
+
+    # whether the tensor product weights couple the paths and channels or not (otherwise the weights are only applied per-path)
+    # default is `true`, which is expected to be more expressive than `false`
+    tp_path_channel_coupling: false
+
+    # neural network parameters in the Allegro layers
+    allegro_mlp_hidden_layers_depth: 2
+    allegro_mlp_hidden_layers_width: 128
+    allegro_mlp_nonlinearity: silu
+    # ^ setting `nonlinearity` to `null` means that the Allegro MLPs are effectively linear layers
+
+    # == readout ==
+    # neural network parameters in the readout layer
+    readout_mlp_hidden_layers_depth: 1
+    readout_mlp_hidden_layers_width: 32
+    readout_mlp_nonlinearity: null
+    # ^ setting `nonlinearity` to `null` means that output MLP is effectively a linear layer
+
+    # average number of neighbors for edge sum normalization
+    avg_num_neighbors: ${training_data_stats:num_neighbors_mean}
+
+    # == per-type per-atom scales and shifts ==
+    per_type_energy_shifts: ${training_data_stats:per_atom_energy_mean}
+    per_type_energy_scales: ${training_data_stats:forces_rms}
+    per_type_energy_scales_trainable: false
+    per_type_energy_shifts_trainable: false
+
+    # == ZBL pair potential ==
+    pair_potential:
+      _target_: nequip.nn.pair_potential.ZBL
+      units: real     # Ang and kcal/mol, LAMMPS unit names;  allowed values "metal" and "real"
+      chemical_species: ${chemical_symbols}   # must tell ZBL the chemical species of the various model atom types
+
+# global options
+global_options:
+  allow_tf32: false
