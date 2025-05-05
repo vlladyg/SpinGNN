@@ -6,7 +6,7 @@
 # - hydra's instantiate (https://hydra.cc/docs/advanced/instantiate_objects/overview/)
 # With hydra's instantiation (notice the `_target_`s everywhere), the config file (almost) directly corresponds to instantiating objects as one would normally do in Python.
 # Much of the infrastructure is based on PyTorch Lightning (https://lightning.ai/docs/pytorch/stable/), such as the use of Lightning's Trainer, DataModule, LightningModule, Callback objects.
-
+# add config
 
 # ===========
 #     RUN
