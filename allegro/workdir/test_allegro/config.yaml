@@ -8,6 +8,7 @@
 # Much of the infrastructure is based on PyTorch Lightning (https://lightning.ai/docs/pytorch/stable/), such as the use of Lightning's Trainer, DataModule, LightningModule, Callback objects.
 # add config
 # add config
+# add config
 
 # ===========
 #     RUN
