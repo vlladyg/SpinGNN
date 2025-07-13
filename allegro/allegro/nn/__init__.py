@@ -1,4 +1,5 @@
 from ._allegro import Allegro_Module
+from ._allegro_c import Allegro_Module_c
 from ._SpinGNN import Allegro_Module_SEGNN 
 from ._SpinGNNPlus import Allegro_Module_MSENN, Allegro_Module_TENN
 from ._edgewise import EdgewiseEnergySum, EdgewiseEnergySumHEGNN, EdgewiseEnergySumSEGNN, EdgewiseSpinSum, EdgewiseReduce, EdgewiseFSum
@@ -15,6 +16,7 @@ from ._etn_als_a_b_opt import ETN_ALS_A_B_Module_opt
 
 __all__ = [
     Allegro_Module,
+    Allegro_Module_c,
     Allegro_Module_SEGNN,
     Allegro_Module_MSENN,
     Allegro_Module_TENN,

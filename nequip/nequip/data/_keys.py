@@ -15,6 +15,7 @@ else:
 POSITIONS_KEY: Final[str] = "pos"
 # Atomic spin of the atoms in the system
 SPIN_KEY: Final[str] = "magmoms"
+CHARGE_KEY: Final[str] = "charges"
 # The [2, n_edge] index tensor giving center -> neighbor relations
 EDGE_INDEX_KEY: Final[str] = "edge_index"
 # A [n_edge, 3] tensor of how many periodic cells each edge crosses in each cell vector

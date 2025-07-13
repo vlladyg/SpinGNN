@@ -173,6 +173,8 @@ class TypeMapper:
                 + "]"
             ).format(*zip(type_names, data))
         else:
+            print(data.ndim)
+            print(len(data), len(type_names))
             raise ValueError(
                 f"Don't know how to format data=`{data}` for types {type_names} with element_formatter=`{element_formatter}`"
             )
