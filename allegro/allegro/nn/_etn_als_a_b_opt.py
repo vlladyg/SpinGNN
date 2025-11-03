@@ -70,8 +70,8 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         self.lmax = lmax
         
         # Second order cores(first and last)
-        core2_1 = Parameter(torch.empty(lmax+1, 1, self.Nc, N_rank_ett[0]).normal_())/sqrt(N_rank_ett[0])
-        core2_d = Parameter(torch.empty(lmax+1, N_rank_ett[-1], self.Nc, 1).normal_())/sqrt(self.Nc)
+        core2_1 = Parameter(torch.empty(lmax+1, 1, self.Nc, N_rank_ett[0]).normal_())
+        core2_d = Parameter(torch.empty(lmax+1, N_rank_ett[-1], self.Nc, 1).normal_())
 
 
         instructions_1 = [(0, l, l) for l in range(lmax + 1)]
@@ -125,11 +125,6 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
             w3j_values.append(
                 this_w3j[this_w3j_index[:, 0], this_w3j_index[:, 1], this_w3j_index[:, 2]]
             )
-
-            w3j_norm_term = (2 * mul_ir_out.ir.l + 1) * (2 * mul_ir_in2.ir.l + 1) #(2 * mul_ir_out.ir.l + 1)  # (2 * mul_ir_in1.ir.l + 1) * (2 * mul_ir_in2.ir.l + 1) #
-            #print(len([i for i in instructions if i[0] == i_in1]))
-            alpha = sqrt(w3j_norm_term/(self.Nc*N_rank_ett[0]*len([i for i in instructions if i[0] == i_in1])))
-            w3j_values[-1].mul_(alpha)
             
             this_w3j_index[:, 0] += base_in1[: i_in1].dim
             this_w3j_index[:, 1] += base_in2[: i_in2].dim

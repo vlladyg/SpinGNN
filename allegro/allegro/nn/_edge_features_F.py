@@ -117,10 +117,10 @@ class EdgeFeatures_FFunction(CodeGenMixin, torch.nn.Module):
         
         # generate code
         params[f"A"] = A
-        A = Proxy(graph.get_attr(f"A"))/(N_rank_spec)**(1/2.)
+        A = Proxy(graph.get_attr(f"A"))
 
         params[f"B"] = B
-        B = Proxy(graph.get_attr(f"B"))/(num_basis)**(1/2.)
+        B = Proxy(graph.get_attr(f"B"))/(N_rank_spec*num_basis)**(1/2.)
 
 
         # Algo from ETN paper to gen F (notation preserved)
