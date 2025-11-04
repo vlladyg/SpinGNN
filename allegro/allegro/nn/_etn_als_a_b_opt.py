@@ -47,7 +47,7 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
         super().__init__()
         self.out_field = out_field
         
-        
+        #print("avg_num_neighbors", avg_num_neighbors)
         self.d = d
         self.Nc = Nc
         self.register_buffer("N_rank_ett", torch.as_tensor(N_rank_ett, dtype=torch.long))
@@ -125,7 +125,11 @@ class ETN_ALS_A_B_Module_opt(nn.Module, GraphModuleMixin):
             w3j_values.append(
                 this_w3j[this_w3j_index[:, 0], this_w3j_index[:, 1], this_w3j_index[:, 2]]
             )
-            
+
+            w3j_norm_term = 2 * mul_ir_out.ir.l + 1
+            alpha = sqrt(w3j_norm_term/(Nc*N_rank_ett[0]*len([i for i in instructions if i[-1] == i_out])))
+            w3j_values[-1].mul_(alpha)
+
             this_w3j_index[:, 0] += base_in1[: i_in1].dim
             this_w3j_index[:, 1] += base_in2[: i_in2].dim
             this_w3j_index[:, 2] += base_out[: i_out].dim
