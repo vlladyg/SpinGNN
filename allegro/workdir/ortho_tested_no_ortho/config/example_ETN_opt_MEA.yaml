@@ -163,8 +163,8 @@ n_val: 500
 batch_size: 10
 
 # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead
-max_epochs: 20
-epochs_per_sweep: 1
+max_epochs: 1000
+epochs_per_sweep: 10
 
 # learning rate, we found values between 0.002 and 0.0005 to work best - this is often one of the most important hyperparameters to tune
 learning_rate: 0.001
