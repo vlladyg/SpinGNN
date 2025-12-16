@@ -1,8 +1,0 @@
-LAMMPS (2 Apr 2025)
-KOKKOS mode with Kokkos version 4.6.0 is enabled (src/KOKKOS/kokkos.cpp:72)
-  will use up to 4 GPU(s) per node
-  using 1 OpenMP thread(s) per MPI task
-package kokkos
-package kokkos newton on neigh full
-ERROR: Must use 'newton off' with KOKKOS package option 'neigh full' (src/KOKKOS/kokkos.cpp:648)
-Last input line: package kokkos newton on neigh full

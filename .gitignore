@@ -1,0 +1,40 @@
+# Working directories
+workdir/
+**/workdir/
+
+# Build artifacts
+build/
+**/build/
+dist/
+**/dist/
+
+# Egg info
+*.egg-info/
+**/*.egg-info/
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.venv/
+venv/
+ENV/
+
