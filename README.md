@@ -235,17 +235,6 @@ Input data should include:
 
 ## Citation
 
-If you use SpinGNN++ in your research, please cite:
-
-```bibtex
-@article{spingnn,
-  title={SpinGNN++: Machine Learning Interatomic Potentials for Magnetic Materials},
-  author={Ladygin, Vladimir and others},
-  journal={arXiv preprint},
-  year={2024}
-}
-```
-
 Also cite the original Allegro paper:
 ```bibtex
 @article{musaelian2023learning,
