@@ -22,7 +22,7 @@ E = E_pair + E_BQ + E_J + E_A + E_TENN
 
 This codebase extends the original Allegro architecture with the following additions:
 
-### New Modules
+### New Modules - SpinGNN++
 
 | File | Description |
 |------|-------------|
@@ -32,16 +32,118 @@ This codebase extends the original Allegro architecture with the following addit
 | `l2_matrix.py` | L=2 tensor basis for spin Hamiltonian |
 | `_SpinGNNPlus.py` (model) | Model builder for SpinGNN++ |
 
+### New Modules - ETN (Equivariant Tensor Network)
+
+| File | Description |
+|------|-------------|
+| `_etn.py` | Core ETN module with tensor train decomposition |
+| `_etn_opt.py` | Optimized ETN with FX graph compilation |
+| `_etn_als_opt.py` | ETN with ALS (Alternating Least Squares) optimization |
+| `_edge_features_F.py` | Edge feature construction for ETN |
+| `_strided/_contract_ETN.py` | Optimized tensor contraction for ETN |
+| `model/_ETN.py` | ETN model builder |
+
 ### Extended Modules
 
 | File | Changes |
 |------|---------|
-| `_keys.py` | Added spin-related field keys (30+ new keys) |
+| `_keys.py` | Added spin-related and ETN field keys (40+ new keys) |
 | `_allegro.py` | Added `Allegro_Module_SEGNN` with spin inputs |
 | `_strided/_channels.py` | Added `MakeWeightedChannelsTENN` for 3-channel input |
 | `nn/__init__.py` | Exports for new modules |
 
-## Architecture
+## Architectures
+
+This codebase provides two distinct equivariant architectures:
+
+1. **SpinGNN++**: Allegro-based architecture extended for magnetic materials
+2. **ETN**: Tensor train-based architecture with Wigner-3j coupling
+
+---
+
+## ETN (Equivariant Tensor Network)
+
+ETN is a fundamentally different architecture from Allegro that uses tensor train decomposition with explicit Wigner-3j coupling.
+
+### ETN vs Allegro
+
+| Aspect | Allegro/SpinGNN++ | ETN |
+|--------|-------------------|-----|
+| Representation | Edge-based | Node-based (aggregated from edges) |
+| Core operation | Message passing + tensor products | Tensor train contraction |
+| Coupling | Learned weights | Explicit Wigner-3j symbols |
+| Body order | Implicit via layers | Explicit via depth parameter `d` |
+
+### ETN Architecture
+
+```
+Input: positions, atom_types
+            |
+            v
+    +-------------------+
+    | Pair Type Embed   |  <-- Encode (type_i, type_j) pairs
+    +-------------------+
+            |
+            v
+    +-------------------+
+    | Radial Basis Q    |  <-- Distance encoding
+    +-------------------+
+            |
+            v
+    +-------------------+
+    | Spherical Harm. Y |  <-- Angular encoding
+    +-------------------+
+            |
+            v
+    +-------------------+
+    | EdgeFeatures_F    |  <-- F = Y * (B * A * Q)
+    +-------------------+
+            |
+            v
+    +-------------------+
+    | EdgewiseFSum      |  <-- Aggregate edges → nodes
+    +-------------------+
+            |
+            v
+    +-------------------+
+    | ETN_Module        |  <-- Tensor train contraction
+    +-------------------+
+            |
+            v
+       Per-atom Energy
+```
+
+### Tensor Train Structure
+
+ETN parameterizes a high-order equivariant tensor using tensor train format:
+
+```
+T = core2_1 × core3[0] × core3[1] × ... × core3[d-3] × core2_d
+```
+
+where:
+- `core2_1`, `core2_d`: Second-order boundary cores (matrices per l)
+- `core3[i]`: Third-order cores with Wigner-3j coupling
+
+The depth `d` controls body order:
+- d=2: 2-body (pair interactions)
+- d=3: 3-body
+- d=4: 4-body
+
+### ETN Configuration
+
+```yaml
+# ETN-specific parameters
+Nc: 16                    # Number of feature channels
+d: 4                      # Tensor train depth (body order)
+N_rank_ett: [4, 8, 8, 4]  # TT ranks
+N_rank_spec: 4            # Species embedding rank
+l_max: 2                  # Maximum angular momentum
+```
+
+---
+
+## SpinGNN++ Architecture
 
 ### MSENN Branch (Position-Only)
 

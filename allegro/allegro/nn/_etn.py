@@ -1,3 +1,57 @@
+"""Equivariant Tensor Network (ETN) Module.
+
+This module implements the ETN architecture, a fundamentally different approach
+from Allegro that uses tensor train decomposition with Wigner-3j symbols.
+
+=== ETN vs ALLEGRO ===
+
+While Allegro uses:
+- Message passing with learned pair interactions
+- Edge-based representations
+- Latent MLPs + tensor products
+
+ETN uses:
+- Tensor train (TT) decomposition of high-order equivariant tensors
+- Node-based representations built from edge features
+- Direct contraction with Wigner-3j coupling coefficients
+
+=== TENSOR TRAIN STRUCTURE ===
+
+ETN parameterizes a high-order equivariant tensor using the tensor train format:
+
+    T = core2_1 × core3[0] × core3[1] × ... × core3[d-3] × core2_d
+
+where:
+- core2_1, core2_d: Second-order boundary cores (matrices per l)
+- core3[i]: Third-order cores with Wigner-3j coupling
+
+The depth 'd' controls the body-order of interactions:
+- d=2: 2-body (pair interactions only)
+- d=3: 3-body
+- d=4: 4-body
+- etc.
+
+=== WIGNER-3J COUPLING ===
+
+The third-order cores use Wigner-3j symbols to couple angular momenta:
+
+    C^{l1,l2,l3}_{m1,m2,m3} = <l1,m1; l2,m2 | l3,m3>
+
+This ensures proper SO(3) equivariance of the network.
+
+=== COMPUTATION FLOW ===
+
+1. Input: Node features F from EdgeFeatures_F (aggregated from edges)
+2. Apply boundary core: u = core2_d × F
+3. For each intermediate core (right to left):
+   - Contract with Wigner-3j: T_2 = Σ_{l3} w3j × core3 × u
+   - Contract with features: u_new = Σ_{l2} T_2 × F
+4. Apply final boundary core: output = core2_1 × u
+5. Reduce to scalar energy: E = (output * F).sum()
+
+Authors: Vladimir Ladygin
+"""
+
 from typing import Optional, List
 import math
 import functools
@@ -21,20 +75,65 @@ from .cutoffs import cosine_cutoff, polynomial_cutoff
 from e3nn.o3 import wigner_3j
 
 
-
-# Triangular ineguality for path existance
 def tri_ineq(l1, l2, l3):
+    """Check triangular inequality for angular momentum coupling.
+    
+    Returns True if (l1, l2, l3) can couple according to angular momentum
+    addition rules: |l1 - l2| <= l3 <= l1 + l2
+    """
     return max([l1, l2, l3]) <= min([l1 + l2, l2 + l3, l1 + l3])
 
 
 @compile_mode("script")
 class ETN_Module(nn.Module, GraphModuleMixin):
+    """Equivariant Tensor Network module for atomic energy prediction.
+    
+    This module implements the core ETN computation using tensor train
+    decomposition with Wigner-3j coupling.
+    
+    === PARAMETERS ===
+    
+    The network has the following learnable parameters:
+    
+    1. core2_1: [lmax+1, Nc, N_rank[0]] - First boundary core
+       Maps from feature channels to first TT rank
+       
+    2. core2_d: [lmax+1, N_rank[-1], Nc] - Last boundary core
+       Maps from last TT rank back to feature channels
+       
+    3. cores3: List of dicts mapping (l1,l2,l3) -> [N_rank[i], Nc, N_rank[i+1]]
+       Third-order cores for each valid angular momentum triple
+    
+    === TENSOR TRAIN RANKS ===
+    
+    N_rank_ett controls the expressivity:
+    - Higher ranks = more parameters = more expressive
+    - Typical values: [4, 8, 16, 8, 4] for d=5
+    
+    === BODY ORDER ===
+    
+    The depth 'd' determines the body order:
+    - d=2: Only boundary cores, 2-body interactions
+    - d=3: One intermediate core, 3-body
+    - d=4: Two intermediate cores, 4-body
+    - etc.
+    
+    Higher body orders capture more complex many-body effects but are
+    more expensive to compute.
+    """
     def __init__(self,
                  d: int,
                  N_rank_ett: List[int], 
                  irreps_in=None,
                  out_field: str = AtomicDataDict.PER_ATOM_ENERGY_KEY):
+        """Initialize ETN module.
         
+        Args:
+            d: Depth of tensor train (body order = d)
+            N_rank_ett: List of TT ranks [r0, r1, ..., r_{d-2}]
+            irreps_in: Input irreps specification
+            out_field: Output field for per-atom energy
+        """
         super().__init__()
         self.out_field = out_field
         

@@ -1,3 +1,35 @@
+"""Optimized ETN Tensor Contraction Operations.
+
+This module provides optimized tensor contraction operations for the ETN
+architecture using FX graph compilation and einsum optimization.
+
+=== THIRD-ORDER CONTRACTION ===
+
+The core ETN operation is a third-order tensor contraction that couples
+three angular momenta (l1, l2, l3) using Wigner-3j symbols:
+
+    u_out[z, k, w] = Σ_{u,v,i,j,p} C[u,v,w,p] * u_in[z,i,u] * F[z,j,v] * w3j[p,k,i,j]
+
+where:
+- z: batch index (atoms/edges)
+- u,v,w: TT rank indices
+- i,j,k: spherical harmonic indices (combined l,m)
+- p: path index (valid l1,l2,l3 triples)
+
+=== OPTIMIZATION ===
+
+The contraction is optimized using:
+1. FX graph tracing for JIT compilation
+2. opt_einsum for optimal contraction order
+3. Strided memory layout for efficiency
+
+The optimal contraction order is found once and cached, as it doesn't
+depend on batch size (the batch dimension z scales linearly in all
+contractions).
+
+Authors: Vladimir Ladygin
+"""
+
 from typing import List, Optional, Tuple
 from math import sqrt
 

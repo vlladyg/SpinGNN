@@ -1,3 +1,43 @@
+"""Edge Feature Construction for ETN (Equivariant Tensor Network).
+
+This module constructs the edge features F that serve as input to the ETN.
+The construction follows the algorithm from the ETN paper.
+
+=== FEATURE CONSTRUCTION ===
+
+The edge features F are built from three components:
+
+1. Radial basis Q: [n_edges, num_basis]
+   - Bessel or other radial basis encoding of distances
+   
+2. Pair type embedding: [n_edges, 1] -> index into A tensor
+   - Encodes the (type_i, type_j) pair as a single index
+   
+3. Spherical harmonics Y: [n_edges, dim_sh]
+   - Angular encoding of edge directions
+
+The feature F is computed as:
+
+    a[l, k, edge] = A[l, k, pair_type[edge]]
+    b[l, edge, r] = Σ_k B[l, r, num_basis, k] * a[l, k, edge] * Q[edge, :]
+    F[edge, l, m, r] = Y[edge, l, m] * b[l, edge, r]
+
+where:
+- A: [lmax+1, N_rank_spec, num_types²] - Species embedding
+- B: [lmax+1, Nc, num_basis, N_rank_spec] - Feature mixing
+
+=== OUTPUT ===
+
+F has shape [n_edges, dim_sh, Nc] where:
+- dim_sh = (lmax+1)² is the total spherical harmonic dimension
+- Nc is the number of output feature channels
+
+These edge features are then summed to nodes (EdgewiseFSum) before
+being processed by the ETN_Module.
+
+Authors: Vladimir Ladygin
+"""
+
 from typing import Optional
 import math
 from e3nn.util.codegen import CodeGenMixin
@@ -16,6 +56,17 @@ from e3nn import o3
 
 
 class EdgeFeatures_F(nn.Module, GraphModuleMixin):
+    """Construct ETN edge features from radial basis, pair types, and spherical harmonics.
+    
+    This module implements the feature construction algorithm from the ETN paper,
+    creating rich equivariant edge features that encode:
+    - Radial distance information (via radial basis)
+    - Chemical species information (via pair type embedding)
+    - Angular information (via spherical harmonics)
+    
+    The output features have Nc channels per angular momentum component,
+    enabling the ETN to learn complex angular-dependent interactions.
+    """
     def __init__(self,
                  num_types: int,
                  Nc: int, 
