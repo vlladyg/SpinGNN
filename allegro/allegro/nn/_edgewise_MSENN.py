@@ -1,3 +1,44 @@
+"""SpinGNN++ Energy Sum Modules.
+
+This module contains the energy computation layers for SpinGNN++. These layers
+take the equivariant features from MSENN/TENN and compute the various energy
+contributions by contracting with spin vectors and basis matrices.
+
+=== ENERGY CONTRIBUTIONS IN SPINGNN++ ===
+
+The total magnetic energy is decomposed as:
+
+    E = E_pair + E_BQ + E_J + E_A + E_TENN
+
+1. E_pair: Standard pair energy (from EdgewiseEnergySum in _edgewise.py)
+   - Computed from scalar edge features
+
+2. E_BQ (Biquadratic): K_ij * (S_i · S_j)²
+   - EdgewiseEnergySumBQ
+   - Uses EDGE_K (scalar biquadratic coupling) from MLP on latent features
+
+3. E_J (Exchange Tensor): S_i^T J_ij S_j
+   - EdgewiseEnergySumJ
+   - J_ij = Σ_k features_k * matrix_terms_J[k]
+   - Contracts 9-component features with 9 basis matrices
+
+4. E_A (On-site Anisotropy): S_i^T A_i S_i
+   - EdgewiseEnergySumA
+   - A_i = Σ_k (Σ_j features_ij) * matrix_terms_A[k]
+   - First sums over neighbors j, then contracts with 6 basis matrices
+
+5. E_TENN: Higher-order contribution
+   - EdgewiseEnergySumTENN
+   - Simple MLP on TENN latent features
+
+=== ATOMWISE REDUCE ===
+
+AtomwiseReduceSpinGNNPlus combines all 5 energy terms with learnable weights,
+allowing the model to balance different physical contributions.
+
+Authors: Vladimir Ladygin
+"""
+
 from typing import Optional
 import math
 
@@ -9,6 +50,7 @@ from nequip.nn import GraphModuleMixin
 
 from .. import _keys
 from .. import matrix_terms_J, matrix_terms_A
+
 
 class EdgewiseReduce(GraphModuleMixin, torch.nn.Module):
     """Like ``nequip.nn.AtomwiseReduce``, but accumulating per-edge data into per-atom data."""
@@ -62,9 +104,30 @@ class EdgewiseReduce(GraphModuleMixin, torch.nn.Module):
 
 
 class EdgewiseEnergySumBQ(GraphModuleMixin, torch.nn.Module):
-    """Sum edgewise energies.
-
-    Includes optional per-species-pair edgewise energy scales.
+    """Compute biquadratic exchange energy: E_BQ = K_ij * (S_i · S_j)².
+    
+    Biquadratic exchange is a higher-order spin interaction that arises from
+    quantum mechanical effects beyond the Heisenberg model. It favors either
+    parallel or perpendicular spin alignment depending on the sign of K.
+    
+    === PHYSICS ===
+    
+    The biquadratic term: H_BQ = Σ_{ij} K_ij (S_i · S_j)²
+    
+    - K > 0: favors perpendicular spins (90° alignment)
+    - K < 0: favors collinear spins (0° or 180°)
+    
+    This term is important for:
+    - Spin-1 systems (where it arises naturally)
+    - Itinerant magnets with strong spin fluctuations
+    - Systems near magnetic phase transitions
+    
+    === COMPUTATION ===
+    
+    1. K_ij is predicted from EDGE_K (scalar MLP output)
+    2. (S_i · S_j)² is computed from EDGE_SPIN_DISTANCE squared
+    3. Per-edge energy: E_ij = K_ij * (S_i · S_j)²
+    4. Scatter sum to per-atom energies
     """
 
     _factor: Optional[float]
@@ -77,7 +140,7 @@ class EdgewiseEnergySumBQ(GraphModuleMixin, torch.nn.Module):
         per_edge_species_scale: bool = False,
         irreps_in={},
     ):
-        """Sum edges into nodes."""
+        """Initialize biquadratic energy sum module."""
         super().__init__()
         self._init_irreps(
             irreps_in=irreps_in,
@@ -109,9 +172,37 @@ class EdgewiseEnergySumBQ(GraphModuleMixin, torch.nn.Module):
     
     
 class EdgewiseEnergySumJ(GraphModuleMixin, torch.nn.Module):
-    """Sum edgewise energies.
-
-    Includes optional per-species-pair edgewise energy scales.
+    """Compute exchange tensor energy: E_J = S_i^T J_ij S_j.
+    
+    This module computes the general bilinear spin interaction where J_ij is
+    a full 3x3 exchange tensor that can encode:
+    
+    1. Heisenberg exchange (isotropic, L=0): J * (S_i · S_j)
+    2. Dzyaloshinskii-Moriya interaction (antisymmetric, L=1): D · (S_i × S_j)
+    3. Anisotropic symmetric exchange (traceless symmetric, L=2)
+    
+    === TENSOR CONSTRUCTION ===
+    
+    J_ij = Σ_k features_J[k] * matrix_terms_J[k]
+    
+    where:
+    - features_J: 9-component output from MSENN (0e + 1e + 2e)
+    - matrix_terms_J: 9 basis matrices from l2_matrix.py
+      [H, DM1, DM2, DM3, ASEI1, ASEI2, ASEI3, ASEI4, ASEI5]
+    
+    === PHYSICS ===
+    
+    This decomposition allows learning arbitrary exchange tensors while
+    respecting the irreducible representation structure:
+    - The scalar (0e) gives isotropic Heisenberg coupling
+    - The vector (1e) gives the DM vector
+    - The tensor (2e) gives anisotropic exchange
+    
+    === COMPUTATION ===
+    
+    1. Contract features with basis matrices: J_ij[a,b] = Σ_k f_k * M_k[a,b]
+    2. Compute bilinear form: E_ij = S_i^T J_ij S_j
+    3. Scatter sum to per-atom energies
     """
 
     _factor: Optional[float]
@@ -124,7 +215,7 @@ class EdgewiseEnergySumJ(GraphModuleMixin, torch.nn.Module):
         per_edge_species_scale: bool = False,
         irreps_in={},
     ):
-        """Sum edges into nodes."""
+        """Initialize exchange tensor energy sum module."""
         super().__init__()
         self._init_irreps(
             irreps_in=irreps_in,
@@ -158,9 +249,38 @@ class EdgewiseEnergySumJ(GraphModuleMixin, torch.nn.Module):
         return data
     
 class EdgewiseEnergySumA(GraphModuleMixin, torch.nn.Module):
-    """Sum edgewise energies.
-
-    Includes optional per-species-pair edgewise energy scales.
+    """Compute on-site anisotropy energy: E_A = S_i^T A_i S_i.
+    
+    On-site anisotropy represents the energy cost of rotating a spin away
+    from preferred crystallographic directions. This is a single-site term
+    that depends on the local chemical environment.
+    
+    === PHYSICS ===
+    
+    The anisotropy tensor A_i must be symmetric (from energy minimization).
+    It encodes:
+    - Easy-axis anisotropy: energy minimum along a specific direction
+    - Easy-plane anisotropy: energy minimum in a plane
+    - Cubic anisotropy: multiple equivalent easy axes
+    
+    Typical forms:
+    - Uniaxial: A = diag(0, 0, K) gives E = K * S_z²
+    - Biaxial: A = diag(K1, K2, 0) gives E = K1*S_x² + K2*S_y²
+    
+    === TENSOR CONSTRUCTION ===
+    
+    Unlike J_ij (per-edge), A_i is per-atom. We compute it by:
+    
+    1. Get per-edge A features from MSENN (6 components: 0e + 2e, no 1e)
+    2. Sum over neighbors: A_i = Σ_j A_ij (environment averaging)
+    3. Contract with basis: A_i[a,b] = Σ_k f_k * matrix_terms_A[k][a,b]
+    
+    Note: No 1e (antisymmetric) component because A must be symmetric.
+    
+    === COMPUTATION ===
+    
+    1. Construct A_i from edge features (scatter sum)
+    2. Compute quadratic form: E_i = S_i^T A_i S_i
     """
 
     _factor: Optional[float]
@@ -173,7 +293,7 @@ class EdgewiseEnergySumA(GraphModuleMixin, torch.nn.Module):
         per_edge_species_scale: bool = False,
         irreps_in={},
     ):
-        """Sum edges into nodes."""
+        """Initialize on-site anisotropy energy sum module."""
         super().__init__()
         self._init_irreps(
             irreps_in=irreps_in,
@@ -208,9 +328,32 @@ class EdgewiseEnergySumA(GraphModuleMixin, torch.nn.Module):
 
 
 class EdgewiseEnergySumTENN(GraphModuleMixin, torch.nn.Module):
-    """Sum edgewise energies.
-
-    Includes optional per-species-pair edgewise energy scales.
+    """Sum TENN edgewise energies to per-atom contributions.
+    
+    This module handles the energy contribution from the Time-reversal
+    Equivariant Tensor Network (TENN). Unlike the explicit J, A, K terms,
+    the TENN energy captures higher-order spin-lattice coupling effects
+    that don't fit neatly into the standard Hamiltonian form.
+    
+    === PHYSICS ===
+    
+    TENN can learn:
+    - Higher-order exchange (4-spin, 6-spin terms)
+    - Complex spin textures (skyrmions, spin spirals)
+    - Spin-phonon coupling effects
+    - Non-perturbative magnetic interactions
+    
+    The TENN branch processes combined position and spin information with
+    proper time-reversal equivariance, then outputs a scalar energy.
+    
+    === COMPUTATION ===
+    
+    1. EDGE_ENERGY_TENN comes from MLP on TENN latent features
+    2. Optional per-species-pair scaling
+    3. Scatter sum to per-atom energies
+    
+    This is structurally similar to the standard EdgewiseEnergySum but
+    operates on the TENN energy field instead of the MSENN energy field.
     """
 
     _factor: Optional[float]
@@ -223,7 +366,7 @@ class EdgewiseEnergySumTENN(GraphModuleMixin, torch.nn.Module):
         per_edge_species_scale: bool = False,
         irreps_in={},
     ):
-        """Sum edges into nodes."""
+        """Initialize TENN energy sum module."""
         super().__init__()
         self._init_irreps(
             irreps_in=irreps_in,
@@ -266,6 +409,38 @@ class EdgewiseEnergySumTENN(GraphModuleMixin, torch.nn.Module):
     
     
 class AtomwiseReduceSpinGNNPlus(GraphModuleMixin, torch.nn.Module):
+    """Combine all SpinGNN++ energy contributions into total energy.
+    
+    This module sums the 5 per-atom energy contributions from SpinGNN++
+    with learnable per-contribution scaling factors:
+    
+    E_total = w1*E_pair + w2*E_BQ + w3*E_J + w4*E_A + w5*E_TENN
+    
+    === ENERGY CONTRIBUTIONS ===
+    
+    1. E_pair (field_eng): Standard pair energy from MSENN latent
+    2. E_BQ (field_BQ): Biquadratic exchange K(S·S)²
+    3. E_J (field_J): Exchange tensor S^T J S
+    4. E_A (field_A): On-site anisotropy S^T A S
+    5. E_TENN (field_TENN): Higher-order TENN contribution
+    
+    === LEARNABLE SCALES ===
+    
+    When per_contrib_scales=True (default), the module learns 5 scaling
+    factors (per_contrib_scales_SpinGNNPlus) that balance the contributions.
+    This is useful because:
+    
+    - Different terms may have different natural magnitudes
+    - The network may need to emphasize certain physics
+    - Helps with training stability
+    
+    === REDUCTION ===
+    
+    Supports:
+    - "sum": simple sum over atoms
+    - "mean": average over atoms
+    - "normalized_sum": sum divided by sqrt(N_atoms)
+    """
     constant: float
 
     def __init__(
@@ -281,6 +456,20 @@ class AtomwiseReduceSpinGNNPlus(GraphModuleMixin, torch.nn.Module):
         irreps_in={},
         per_contrib_scales: bool = True,
     ):
+        """Initialize SpinGNN++ atomwise reduction module.
+        
+        Args:
+            field_eng: Field name for pair energy
+            field_BQ: Field name for biquadratic energy
+            field_J: Field name for exchange tensor energy
+            field_A: Field name for anisotropy energy
+            field_TENN: Field name for TENN energy
+            out_field: Output field name (default: reduce_field_eng)
+            reduce: Reduction method ("sum", "mean", "normalized_sum")
+            avg_num_atoms: Average atoms per structure (for normalized_sum)
+            irreps_in: Input irreps specification
+            per_contrib_scales: Whether to learn per-contribution scales
+        """
         super().__init__()
         assert reduce in ("sum", "mean", "normalized_sum")
         self.constant = 1.0

@@ -1,3 +1,53 @@
+"""SpinGNN++ Neural Network Modules: MSENN and TENN.
+
+This module contains the two main components of the SpinGNN++ architecture:
+
+1. Allegro_Module_MSENN: Magnetic Steerable E(3) Neural Network
+   - Position-only branch that outputs exchange tensor features
+   
+2. Allegro_Module_TENN: Time-reversal Equivariant Tensor Network
+   - Spin-aware branch using time-reversal equivariant representations
+
+=== SPINGNN++ ARCHITECTURE OVERVIEW ===
+
+SpinGNN++ predicts the total energy of a magnetic system:
+
+    E = E_pair + E_BQ + E_J + E_A + E_TENN
+
+where:
+- E_pair: Standard pair energy (like original Allegro)
+- E_BQ: Biquadratic exchange K(S_i · S_j)²
+- E_J: Exchange tensor S_i^T J_ij S_j (Heisenberg + DM + anisotropic exchange)
+- E_A: On-site anisotropy S_i^T A_i S_i
+- E_TENN: Higher-order spin-lattice coupling from TENN
+
+=== DATA FLOW ===
+
+```
+Positions, Types --> MSENN --> E_pair, J_features, A_features
+                               |
+Spins, Positions --> SpinEmbed + TENN --> E_TENN
+                               |
+                     J_features, A_features
+                               |
+                     Contract with spins
+                               |
+                     E_J, E_A, E_BQ
+                               |
+                     Sum --> Total Energy
+```
+
+=== IRREPS STRUCTURE ===
+
+MSENN output irreps: 1x0e + 1x1e + 1x2e = 9 components
+- 0e (1): Heisenberg exchange J
+- 1e (3): DM vector D
+- 2e (5): Anisotropic symmetric exchange
+
+TENN uses time-reversal irreps (l, p, t) with t=-1 to handle spin
+transformations under time reversal.
+"""
+
 from typing import Optional, List
 import math
 import functools
@@ -18,8 +68,38 @@ from .. import _keys
 from ._strided import Contracter, MakeWeightedChannels, MakeWeightedChannelsTENN, Linear
 from .cutoffs import cosine_cutoff, polynomial_cutoff
 
+
 @compile_mode("script")
 class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
+    """Magnetic Steerable E(3) Neural Network Module.
+    
+    This module extends the Allegro architecture to output equivariant features
+    suitable for constructing spin Hamiltonian tensors. Unlike the standard
+    Allegro which outputs only scalars, MSENN outputs mixed irreps.
+    
+    === KEY DIFFERENCES FROM STANDARD ALLEGRO ===
+    
+    1. Last layer outputs 0e + 1e + 2e instead of just 0e:
+       - 0e: scalar (Heisenberg exchange)
+       - 1e: vector (DM interaction)
+       - 2e: traceless symmetric tensor (anisotropic exchange)
+    
+    2. Two separate linear projections at the final layer:
+       - final_linear1: for J_ij tensor features (9 components)
+       - final_linear2: for A_i tensor features (6 components, no 1e)
+    
+    3. Environment embedding uses multiplicity 3 instead of 1:
+       - This allows richer geometric features
+    
+    === OUTPUTS ===
+    
+    - EDGE_FEATURES: scalar latent features (for E_pair)
+    - EDGE_FEATURES_MSENN_J: J tensor features [n_edges, 9]
+    - EDGE_FEATURES_MSENN_A: A tensor features [n_edges, 6]
+    
+    These features are then contracted with basis matrices from l2_matrix.py
+    and spin vectors to compute exchange and anisotropy energies.
+    """
     # saved params
     num_layers: int
     field: str
@@ -710,6 +790,56 @@ class Allegro_Module_MSENN(GraphModuleMixin, torch.nn.Module):
 
 @compile_mode("script")
 class Allegro_Module_TENN(GraphModuleMixin, torch.nn.Module):
+    """Time-reversal Equivariant Tensor Network Module.
+    
+    TENN is the key innovation for handling spin systems with proper symmetry.
+    It uses extended O(3) × Z_2^T representations to ensure the network
+    respects time-reversal symmetry.
+    
+    === TIME-REVERSAL SYMMETRY ===
+    
+    Under time reversal T:
+    - Positions: r → r (invariant)
+    - Momenta: p → -p (flip)
+    - Spins: S → -S (flip, since S ~ r × p)
+    - Magnetic field: B → -B (flip)
+    
+    The energy must be invariant under T (for closed systems), but magnetic
+    interactions are NOT invariant - they change sign. TENN handles this by:
+    
+    1. Using irreps (l, p, t) where t = -1 indicates odd under time reversal
+    2. Processing both position AND spin spherical harmonics
+    3. Tracking time-reversal parity through tensor products
+    
+    === IRREPS STRUCTURE ===
+    
+    Standard O(3) irreps: (l, p) where p = ±1 for spatial parity
+    Extended irreps: (l, p, t) where t = ±1 for time-reversal
+    
+    At each layer, TENN considers all 4 combinations of parities:
+    - (l, +1, +1): even-even
+    - (l, -1, +1): odd-even  
+    - (l, +1, -1): even-odd (magnetic-like)
+    - (l, -1, -1): odd-odd (magnetic pseudovector-like)
+    
+    === INPUT STRUCTURE ===
+    
+    TENN takes 3-channel edge attributes from SphericalHarmonicEdgeAttrsTENN:
+    - Channel 0: Y(r_ij) - edge direction
+    - Channel 1: Y(S_i) - center spin direction
+    - Channel 2: Y(S_j) - neighbor spin direction
+    
+    The first layer latent also includes:
+    - Spin lengths and spin distance embedding
+    - Latent features from the preceding MSENN layer
+    
+    === OUTPUTS ===
+    
+    - EDGE_FEATURES: scalar edge latent features with time-reversal indices
+    
+    These are used to predict the TENN energy contribution, which captures
+    higher-order spin-lattice coupling effects beyond the explicit J, A, K terms.
+    """
     # saved params
     num_layers: int
     field: str
